@@ -1,7 +1,7 @@
 # This script defines Wordle as a POMDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
-using POMDPModelTools: Deterministic, Uniform, SparseCat
+using POMDPModelTools: SparseCat
 using Wordle
 
 # I think the main decision we have to make here is should a state be a letter in the alphabet (a-z)
@@ -34,24 +34,32 @@ function wordle_actions()
 end
 
 function wordle_observations()
+    return [:test]
 end
 
-function wordle_transition()
+function wordle_transition(s, a)
     # the transitions are difficult for this...
     # technically there isn't really a probability that a future word will be guessed based on the current word?
     # we could perhaps just include a default error rate 
         # something like we guess a totally different word 5% of the time? 
         # it doesn't really make sense though  
         # do we have to have a transition probability? 
+
+    # for now, just 100% chance of returning the state
+    return SparseCat([s], [1.0])
 end
 
-function wordle_observation_probs()
+function wordle_observation_probs(s, a, sp)
     # same issue here as the transitions.. 
+
+    SparseCat([:test], [1.0])
 end
 
-function wordle_reward(game, a)
-    # :param: game: the WordleGame object
+function wordle_reward(s, a)
+    # :param: s: the current state
     # :param: a: the action, a Symbol object cooresponding to a 5 letter word from wordle_actions()
+
+    # todo: we may have to adjust these rewards... they are not set in stone 
 
     # a green guess (letter is in the right spot) is worth 10 points 
     # a yellow guess (correct letter, wrong spot) is worth 5 points 
@@ -62,6 +70,7 @@ function wordle_reward(game, a)
         # Wordle.PRESENT : "yellow" guess
         # Wordle.INCORRECT : "black" guess
 
+    # it's likely the `game` object may need to be a global variable? 
     word = string(a)
     response = guess(game, word).result
 
@@ -79,6 +88,13 @@ function wordle_reward(game, a)
 end
 
 function wordle_init()
+    # the initial state should be an empty game 
+    # we will have to add an "empty" state to the states list 
+    # or should the initial word just be a random word? 
+
+    states = wordle_states() 
+    word = rand(states, 1)
+    return SparseCat(word, [1.0])
 end
 
 function wordle()
