@@ -1,0 +1,3 @@
+# Julia Requirements
+
+# add https://github.com/jowch/Wordle.jl.git
