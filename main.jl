@@ -15,9 +15,6 @@ function main()
     # define the wordle POMDP 
     m = wordle() 
 
-    # todo: we need to add the `game` to the POMDP object so that the reward function can access it 
-        # todo: how do we do this? 
-
     # Basic simulation with a random policy
     policy = RandomPolicy(m)
     sim = RolloutSimulator(max_steps=100)

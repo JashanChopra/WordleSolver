@@ -4,33 +4,41 @@ using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: SparseCat
 using Wordle
 
-# I think the main decision we have to make here is should a state be a letter in the alphabet (a-z)
-    # or should a state be a 5 letter word
-
-# I think the 5 letter word way makes defining valid states easier, but then we essentially have a continuous distribution?
-    # we could use the list of any valid word.... but I think it would be a more fun challenge to try to train an algorithim to not guess bogus words?
-
-# if the states and actions are individual letters... then to construct a full guess we would essentially have to act! 5 times..
-    # it would almost be like there would be 5 solvers running at the same time? idk how that would work 
-
-# if the states and actions are full words, then our act! loop makes more sense but the state and action space is much larger?
-
 function wordle_states()
-    # get the list of all valid wordle words
-    words = Wordle.VALID_WORD_LIST
+    # :output: states: Array[Array[Symbol]]
+    # the state comes from the Wordle.jl "WordleResponse" class 
 
-    # convert each string in the list into symbols 
-    states = Symbol[]
-    for word in words 
-        push!(states, Symbol(word))
-    end
+    # the wordle symbols correspond to the following:
+        # Wordle.CORRECT : "green" guess
+        # Wordle.PRESENT : "yellow" guess
+        # Wordle.INCORRECT : "black" guess
+    # each state is an Array[Symbol] containing a symbol cooresponding to the guess type
+    # :c = Wordle.CORRECT, :p = Wordle.PRESENT, :i = Wordle.INCORRECT
+    # example: [:c, :p, :i, :c, :i]
+
+    # define the possible symbols 
+    correct = :c
+    present = :p
+    incorrect = :i
+
+    # construct all possible states 
+    # todo: how to do this efficiently, I'm so bad at Combinatorics 
+    states = Array[]
+
     return states
 end
 
 function wordle_actions()
-    # for Wordle, the action space is the same as the state space 
-    # i.e: a valid action is guessing a valid word 
-    return wordle_states()
+    # a valid action is guessing a valid word 
+    # get the list of all valid wordle words
+    words = Wordle.VALID_WORD_LIST
+
+    # convert each string in the list into symbols 
+    actions = Symbol[]
+    for word in words 
+        push!(actions, Symbol(word))
+    end
+    return actions
 end
 
 function wordle_observations()
@@ -45,7 +53,7 @@ function wordle_transition(s, a)
         # it doesn't really make sense though  
         # do we have to have a transition probability? 
 
-    # for now, just 100% chance of returning the state
+    # for now, just 100% chance of returning the same state
     return SparseCat([s], [1.0])
 end
 
@@ -61,26 +69,19 @@ function wordle_reward(s, a)
 
     # todo: we may have to adjust these rewards... they are not set in stone 
 
-    # a green guess (letter is in the right spot) is worth 10 points 
-    # a yellow guess (correct letter, wrong spot) is worth 5 points 
-    # a black guess (wrong letter) is worth -1 points
-
-    # the wordle symbols coorespond to the following:
-        # Wordle.CORRECT : "green" guess
-        # Wordle.PRESENT : "yellow" guess
-        # Wordle.INCORRECT : "black" guess
+    # a green guess [:c] (letter is in the right spot) is worth 10 points 
+    # a yellow guess [:p] (correct letter, wrong spot) is worth 5 points 
+    # a black guess [:i] (wrong letter) is worth -1 points
 
     # it's likely the `game` object may need to be a global variable? 
-    word = string(a)
-    response = guess(game, word).result
 
     reward = 0.0 
-    for letter in response 
-        if letter == Wordle.CORRECT
+    for letter in s 
+        if letter == :c
             reward += 10.0
-        elseif letter == Wordle.PRESENT
+        elseif letter == :p
             reward += 5.0
-        elseif letter == Wordle.INCORRECT
+        elseif letter == :i
             reward -= 1.0
         end
     end
@@ -88,13 +89,8 @@ function wordle_reward(s, a)
 end
 
 function wordle_init()
-    # the initial state should be an empty game 
-    # we will have to add an "empty" state to the states list 
-    # or should the initial word just be a random word? 
-
-    states = wordle_states() 
-    word = rand(states, 1)
-    return SparseCat(word, [1.0])
+    # the initial state should be an empty game row
+    return SparseCat([:i, :i, :i, :i, :i], [1.0])
 end
 
 function wordle()
