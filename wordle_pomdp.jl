@@ -3,29 +3,9 @@
 using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: SparseCat
 using Wordle
+using Combinatorics
 
 function wordle_states()
-    # :output: states: Array[Array[Symbol]]
-    # the state comes from the Wordle.jl "WordleResponse" class 
-
-    # the wordle symbols correspond to the following:
-        # Wordle.CORRECT : "green" guess
-        # Wordle.PRESENT : "yellow" guess
-        # Wordle.INCORRECT : "black" guess
-    # each state is an Array[Symbol] containing a symbol cooresponding to the guess type
-    # :c = Wordle.CORRECT, :p = Wordle.PRESENT, :i = Wordle.INCORRECT
-    # example: [:c, :p, :i, :c, :i]
-
-    # define the possible symbols 
-    correct = :c
-    present = :p
-    incorrect = :i
-
-    # construct all possible states 
-    # todo: how to do this efficiently, I'm so bad at Combinatorics 
-    states = Array[]
-
-    return states
 end
 
 function wordle_actions()
@@ -42,7 +22,35 @@ function wordle_actions()
 end
 
 function wordle_observations()
-    return [:test]
+    # :output: observations: Array[Array[Symbol]]
+    # the observation comes from the Wordle.jl "WordleResponse" class 
+
+    # the wordle symbols correspond to the following:
+        # Wordle.CORRECT : "green" guess
+        # Wordle.PRESENT : "yellow" guess
+        # Wordle.INCORRECT : "black" guess
+    # each state is an Array[Symbol] containing a symbol cooresponding to the guess type
+    # :c = Wordle.CORRECT, :p = Wordle.PRESENT, :i = Wordle.INCORRECT
+    # example: [:c, :p, :i, :c, :i]
+
+    # construct all possible states 
+    # todo: how to do this efficiently, I'm so bad at Combinatorics 
+
+    # construct all possible tuples 
+    N = 5
+    reverse.(Iterators.product(fill(0:N-1,N)...))[:]
+
+    states = Array[]
+    start_set = [:c, :p, :i, :na1, :na2]
+    unique_sets = collect(with_replacement_combinations(start_set, 5))
+    for set in unique_sets 
+        possibilities = collect(with_replacement_combinations(set, 5))
+        for state in possibilities
+            push!(states, state)
+        end
+    end
+    # final_states = unique(collect(states))
+    # return final_states
 end
 
 function wordle_transition(s, a)
@@ -58,7 +66,8 @@ function wordle_transition(s, a)
 end
 
 function wordle_observation_probs(s, a, sp)
-    # same issue here as the transitions.. 
+    # depending on the number of possibile words left in the valid list given our observations, return a probability 
+    # generative probability!
 
     SparseCat([:test], [1.0])
 end
@@ -93,7 +102,10 @@ function wordle_init()
     return SparseCat([:i, :i, :i, :i, :i], [1.0])
 end
 
-function wordle()
+function wordle(gamma=0.99)
+    # construct a Wordle POMDP
+    # :param: gamma: the discount factor
+
     # construct and return the POMDP
     m = QuickPOMDP(
         states = wordle_states,
@@ -103,7 +115,7 @@ function wordle()
         observation = wordle_observation_probs,
         reward = wordle_reward,
         initialstate = wordle_init, 
-        discount = 0.99
+        discount = gamma
     )
     return m
 end
