@@ -3,15 +3,18 @@ using Wordle
 
 function winning_policy(m, game)
     # a policy that always guesses the correct word 
+    # :return: String, a Wordle guess
     return game.target
 end
 
 function random_policy(m, game)
     # a policy that returns a random word
+    # :return: String, a Wordle guess
     return rand(Wordle.VALID_WORD_LIST, 1)[1]
 end
 
 function create_random_game()
+    # :return: Wordlegame
     # create a random Wordle game 
     word = rand(Wordle.VALID_WORD_LIST, 1)[1]
     return WordleGame(word)
@@ -19,7 +22,8 @@ end
 
 function create_game(word)
     # create a Wordle game with the provided word
-    # word: String, a valid Wordle word 
+    # :param: word: String, a valid Wordle word
+    # :return: Wordlegame
     return WordleGame(word)
 end
 
@@ -69,10 +73,12 @@ function evaluate_policy(m, policy, n)
             # if all letters were correct, we've successfully guessed the word
             if reward == r_correct * 5.0
                 correct += 1
-                println("Game ", i, " was correctly gussed in ", curr_tries, " guesses")
-                println("The correct word was: ", game.target)
+                println("   Game ", i, " was correctly guessed in ", curr_tries, " guesses")
+                println("   The correct word was: ", game.target)
                 break
-            end            
+            end
+            
+            # todo: if we are on the last try, and we failed, add a large negative reward? 
         end
         # for each game, we add the total game_reward divided by the number of tries 
         total_reward += game_reward / curr_tries
