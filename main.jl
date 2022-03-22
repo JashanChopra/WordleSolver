@@ -11,11 +11,9 @@ function main()
     # define the wordle POMDP 
     m = wordle() 
 
-    # number of games to run 
-    n = 10
-
     # a policy that cheats to always get the correct answer
-    # note: the reward returned from this is the maximum we could possibly see
+    # note: the score returned from this is the maximum we could possibly see
+    n = 5 # number of games to run 
     println("Testing a cheating policy")
     policy = winning_policy
     reward, correct = evaluate_policy(m, policy, n)
@@ -30,7 +28,7 @@ function main()
 
     # a policy that random guesses words
     # note: if a policy does worse than this, we are not doing well 
-    n = 10
+    n = 25000 
     println("Testing a random policy")
     policy = random_policy
     reward, correct = evaluate_policy(m, policy, n)

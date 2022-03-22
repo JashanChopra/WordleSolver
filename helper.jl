@@ -37,52 +37,28 @@ function evaluate_policy(m, policy, n)
     # :return: Int, the number of games that were correctly guessed
 
     correct = 0         # the number of games that were solved correctly
-    total_reward = 0.0  # the total reward for all games
+    total_score = 0.0   # the running score over all games 
     for i in 1:n
         game = create_random_game() # create a random game 
-        max_tries = 6 
-        curr_tries = 0  
 
-        game_reward = 0.0
-        while curr_tries <= max_tries 
-            # evaluate a policy to get a word 
+        # the game score cooresponds to the number of tries: the higher the score, the worse the policy
+        max_tries = 6.0 
+        game_score = 0.0
+        while game_score != max_tries 
+            # all policies must take in the WordlePOMDP and the WordleGame objects
             word = policy(m, game)
+            game_score += 1.0
 
-            # guess that word
-            response = guess(game, word).result  
-
-            # calculate the reward for the specific guess
-            reward = 0.0 
-            r_correct = 10.0 
-            r_present = 5.0 
-            r_incorrect = -1.0
-            for letter in response 
-                if letter == Wordle.CORRECT
-                    reward += r_correct
-                elseif letter == Wordle.PRESENT
-                    reward += r_present
-                elseif letter == Wordle.INCORRECT
-                    reward += r_incorrect
-                end
-            end
-
-            # update the number of tries and the overall game reward
-            curr_tries += 1
-            game_reward += reward 
-
-            # if all letters were correct, we've successfully guessed the word
-            if reward == r_correct * 5.0
+            # check if the word is correct
+            if word == game.target
                 correct += 1
-                println("   Game ", i, " was correctly guessed in ", curr_tries, " guesses")
+                println("   Game ", i, " was correctly guessed in ", convert(Int, game_score), " guesses")
                 println("   The correct word was: ", game.target)
                 break
-            end
-            
-            # todo: if we are on the last try, and we failed, add a large negative reward? 
+            end 
         end
-        # for each game, we add the total game_reward divided by the number of tries 
-        total_reward += game_reward / curr_tries
+        total_score += game_score
     end
     # return the average game reward and number correct            
-    return total_reward / n, correct 
+    return total_score / n, correct 
 end
