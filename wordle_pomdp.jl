@@ -10,21 +10,15 @@ function wordle_states()
     # :return: Vector{String}, a list of valid Wordle actions
 
     # todo: we probably also need an "empty" state (lol thats a five letter word... oops) for the initial state
-    return Wordle.VALID_WORD_LIST
+    words = Wordle.VALID_WORD_LIST
+    push!(words, "NA")
+    return words
 end
 
 function wordle_actions()
-    # the total action space is the same as the state space
+    # the total action space is the same as the state space, besides the empty word 
     # :return: Vector{String}, a list of valid Wordle actions
     return Wordle.VALID_WORD_LIST
-
-    # todo: no point to convert to symbols I think?
-    # # convert each string in the list into symbols 
-    # actions = Symbol[]
-    # for word in words 
-    #     push!(actions, Symbol(word))
-    # end
-    # return actions
 end
 
 function wordle_observations()
@@ -98,10 +92,9 @@ function wordle_reward(s, a)
 end
 
 function wordle_init()
-    # the initial state should be an empty game row
-    # so we need to add an "empty" state to the state space 
-
-    # return SparseCat([:i, :i, :i, :i, :i], [1.0])
+    # the initial state is always the empty game row 
+    # specfified by "NA"
+    return SparseCat(["NA"], [1.0])
 end
 
 function wordle(gamma=0.99)
