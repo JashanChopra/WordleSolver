@@ -10,7 +10,7 @@ function wordle_states()
     # :return: Vector{String}, a list of valid Wordle actions
 
     # todo: we probably also need an "empty" state (lol thats a five letter word... oops) for the initial state
-    words = Wordle.VALID_WORD_LIST
+    words = deepcopy(Wordle.VALID_WORD_LIST)
     push!(words, "NA")
     return words
 end
@@ -18,7 +18,8 @@ end
 function wordle_actions()
     # the total action space is the same as the state space, besides the empty word 
     # :return: Vector{String}, a list of valid Wordle actions
-    return Wordle.VALID_WORD_LIST
+    words = deepcopy(Wordle.VALID_WORD_LIST)
+    return words
 end
 
 function wordle_observations()

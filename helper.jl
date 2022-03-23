@@ -1,5 +1,6 @@
 # A series of helper wrapper functions for the Wordle.jl library  
 using Wordle 
+using POMDPs: actions
 
 function winning_policy(m, game)
     # a policy that always guesses the correct word 
@@ -8,9 +9,9 @@ function winning_policy(m, game)
 end
 
 function random_policy(m, game)
-    # a policy that returns a random word
+    # a policy that returns a random action
     # :return: String, a Wordle guess
-    return rand(Wordle.VALID_WORD_LIST, 1)[1]
+    return rand(actions(m))
 end
 
 function create_random_game()
@@ -44,7 +45,7 @@ function evaluate_policy(m, policy, n)
         # the game score cooresponds to the number of tries: the higher the score, the worse the policy
         max_tries = 6.0 
         game_score = 0.0
-        while game_score != max_tries 
+        while game_score <= max_tries 
             # all policies must take in the WordlePOMDP and the WordleGame objects
             word = policy(m, game)
             game_score += 1.0
