@@ -28,6 +28,10 @@ function create_game(word)
     return WordleGame(word)
 end
 
+function get_possible_words()
+
+end
+
 function evaluate_policy(m, policy, n)
     # a framework for evaluating Wordle games 
 
@@ -40,7 +44,7 @@ function evaluate_policy(m, policy, n)
     correct = 0         # the number of games that were solved correctly
     total_score = 0.0   # the running score over all games 
     for i in 1:n
-        game = create_random_game() # create a random game 
+        global game = create_random_game() # create a random game 
 
         # the game score cooresponds to the number of tries: the higher the score, the worse the policy
         max_tries = 6.0 

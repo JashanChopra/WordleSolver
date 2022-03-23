@@ -4,54 +4,60 @@ using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: Uniform, Deterministic
 using Wordle
 using Combinatorics
+include("./helper.jl")
 
 function wordle_states()
     # the total state space is the list of all valid words
     # :return: Vector{String}, a list of valid Wordle actions
-
-    # todo: we probably also need an "empty" state (lol thats a five letter word... oops) for the initial state
-    words = deepcopy(Wordle.VALID_WORD_LIST)
-    push!(words, "NA")
-    return words
+    return deepcopy(Wordle.VALID_WORD_LIST)
 end
 
 function wordle_actions()
     # the total action space is the same as the state space, besides the empty word 
     # :return: Vector{String}, a list of valid Wordle actions
-    words = deepcopy(Wordle.VALID_WORD_LIST)
-    return words
+    return deepcopy(Wordle.VALID_WORD_LIST)
 end
 
 function wordle_observations()
-    # :output: observations: Array[Array[Symbol]]
-    # the observation comes from the Wordle.jl "WordleResponse" class 
-
-    # the wordle symbols correspond to the following:
-        # Wordle.CORRECT : "green" guess
-        # Wordle.PRESENT : "yellow" guess
-        # Wordle.INCORRECT : "black" guess
-    # each state is an Array[Symbol] containing a symbol cooresponding to the guess type
-    # example: [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT, Wordle.CORRECT, Wordle.INCORRECT]
-
-    # the total observation space is all possible 5-letter combinations of the set [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT]
+    # I originally thought the observations should be what the return from a guess 
+        # the number of letters correct, incorrect, or possibly correct 
+        # however, when thinking about the observation probability, and the fact the 
+        # the observation eseentially becomes the "state" 
+        # I think the observation space is the same as the state space? 
     
-    # construct all possible tuples 
-    # todo: how to do this efficiently, I'm so bad at Combinatorics 
-    N = 5
-    reverse.(Iterators.product(fill(0:N-1,N)...))[:]
+    # :return: Vector{String}, a list of valid Wordle actions
+    return deepcopy(Wordle.VALID_WORD_LIST)
 
-    # todo: this doesn't work
-    states = Array[]
-    start_set = [:c, :p, :i, :na1, :na2]
-    unique_sets = collect(with_replacement_combinations(start_set, 5))
-    for set in unique_sets 
-        possibilities = collect(with_replacement_combinations(set, 5))
-        for state in possibilities
-            push!(states, state)
-        end
-    end
-    final_states = unique(collect(states))
-    return final_states
+
+    # # :output: observations: Array[Array[Symbol]]
+    # # the observation comes from the Wordle.jl "WordleResponse" class 
+
+    # # the wordle symbols correspond to the following:
+    #     # Wordle.CORRECT : "green" guess
+    #     # Wordle.PRESENT : "yellow" guess
+    #     # Wordle.INCORRECT : "black" guess
+    # # each state is an Array[Symbol] containing a symbol cooresponding to the guess type
+    # # example: [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT, Wordle.CORRECT, Wordle.INCORRECT]
+
+    # # the total observation space is all possible 5-letter combinations of the set [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT]
+    
+    # # construct all possible tuples 
+    # # todo: how to do this efficiently, I'm so bad at Combinatorics 
+    # N = 5
+    # reverse.(Iterators.product(fill(0:N-1,N)...))[:]
+
+    # # todo: this doesn't work
+    # states = Array[]
+    # start_set = [:c, :p, :i, :na1, :na2]
+    # unique_sets = collect(with_replacement_combinations(start_set, 5))
+    # for set in unique_sets 
+    #     possibilities = collect(with_replacement_combinations(set, 5))
+    #     for state in possibilities
+    #         push!(states, state)
+    #     end
+    # end
+    # final_states = unique(collect(states))
+    # return final_states
 end
 
 function wordle_transition(s, a)
@@ -74,6 +80,11 @@ function wordle_observation_probs(s, a, sp)
             # then any word with "a" in it can be eliminated 
         # once we've eliminated the correct words, there is a uniform probability of it being any remaining word
             # this is because the word is picked at random without any human input 
+    words = deepcopy(Wordle.VALID_WORD_LIST)
+    
+    # the state is our target word (game.target)
+    # the action is the word we guessed
+    # the state_prime is also the target word, since our state never actually changes?
 
     leftover_possibilities = []
     Uniform(leftover_possibilities)
@@ -107,9 +118,8 @@ function wordle_reward(s, a)
 end
 
 function wordle_init()
-    # the initial state is always the empty game row 
-    # specfified by "NA"
-    return Deterministic(["NA"])
+    # the initial state should be a random word
+    return Uniform(wordle_states())
 end
 
 function wordle(gamma=0.99)
