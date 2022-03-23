@@ -1,7 +1,7 @@
 # This script defines Wordle as a POMDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
-using POMDPModelTools: SparseCat
+using POMDPModelTools: Uniform, Deterministic
 using Wordle
 using Combinatorics
 
@@ -55,18 +55,28 @@ function wordle_observations()
 end
 
 function wordle_transition(s, a)
-    # technically there isn't really a probability that a future word will be guessed based on the current word?
+    # the state remains the same despite the action 
+
     # we could perhaps just include a default error rate 
         # something like we guess a totally different word 5% of the time? 
-        # it doesn't really make sense though
+        # it doesn't really make physical sense though 
 
-    # for now, just 100% chance of returning the same state
-    return SparseCat([s], [1.0])
+    return Deterministic(s)
 end
 
 function wordle_observation_probs(s, a, sp)
     # observation should be a function that takes in s, a, and sp, and returns the distribution of o
-    # unsure what this should be like 
+    
+    # this function is theoretically fairly straightforward but it may be hard to implement 
+
+    # from our observation, we can eliminate states that definately aren't the correct word
+        # i.e: if our observation contains an "INCORRECT" observation for the letter "a" 
+            # then any word with "a" in it can be eliminated 
+        # once we've eliminated the correct words, there is a uniform probability of it being any remaining word
+            # this is because the word is picked at random without any human input 
+
+    leftover_possibilities = []
+    Uniform(leftover_possibilities)
 end
 
 function wordle_reward(s, a)
@@ -90,12 +100,16 @@ function wordle_reward(s, a)
 
     # there should also probably be some negative reward for how attempts it takes us 
         # which would mean we need to encode the number of attempts in the state
+
+    # if we want to use the Wordle.CORRECT and other symbols, we need to include the "game" object 
+    # in this function... which would mean it either has to be encoded in the state or it has to be a 
+    # global variable 
 end
 
 function wordle_init()
     # the initial state is always the empty game row 
     # specfified by "NA"
-    return SparseCat(["NA"], [1.0])
+    return Deterministic(["NA"])
 end
 
 function wordle(gamma=0.99)
