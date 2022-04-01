@@ -10,6 +10,12 @@ function wordle_states()
     # the total state space is the list of all valid words
     # :return: Vector{String}, a list of valid Wordle actions
     return deepcopy(Wordle.VALID_WORD_LIST)
+
+    # notes: 
+        # we probably want to include the number of turns in the state space
+        # we could represent the state as a vector: 
+            # [String, Int64]
+
 end
 
 function wordle_actions()
@@ -19,16 +25,6 @@ function wordle_actions()
 end
 
 function wordle_observations()
-    # I originally thought the observations should be what the return from a guess 
-        # the number of letters correct, incorrect, or possibly correct 
-        # however, when thinking about the observation probability, and the fact the 
-        # the observation eseentially becomes the "state" 
-        # I think the observation space is the same as the state space? 
-    
-    # :return: Vector{String}, a list of valid Wordle actions
-    return deepcopy(Wordle.VALID_WORD_LIST)
-
-
     # # :output: observations: Array[Array[Symbol]]
     # # the observation comes from the Wordle.jl "WordleResponse" class 
 
@@ -46,28 +42,28 @@ function wordle_observations()
     # N = 5
     # reverse.(Iterators.product(fill(0:N-1,N)...))[:]
 
-    # # todo: this doesn't work
-    # states = Array[]
-    # start_set = [:c, :p, :i, :na1, :na2]
-    # unique_sets = collect(with_replacement_combinations(start_set, 5))
-    # for set in unique_sets 
-    #     possibilities = collect(with_replacement_combinations(set, 5))
-    #     for state in possibilities
-    #         push!(states, state)
-    #     end
-    # end
-    # final_states = unique(collect(states))
-    # return final_states
+    # todo: this doesn't work
+    obs = Array[]
+    start_set = [:c, :p, :i, :na1, :na2]
+    unique_sets = collect(with_replacement_combinations(start_set, 5))
+    for set in unique_sets 
+        possibilities = collect(with_replacement_combinations(set, 5))
+        for o in possibilities
+            push!(obs, o)
+        end
+    end
+    final_obs = unique(collect(obs))
+    return final_obs
 end
 
 function wordle_transition(s, a)
-    # the state remains the same despite the action 
-
-    # we could perhaps just include a default error rate 
-        # something like we guess a totally different word 5% of the time? 
-        # it doesn't really make physical sense though 
-
-    return Deterministic(s)
+    if s[1] == a 
+        # if we guess the correct word, reset the state to a random one in the whole state space
+        return Uniform(wordle_states())
+    else
+        # if we haven't guessed the word, the state remains the same
+        return Deterministic(s)
+    end
 end
 
 function wordle_observation_probs(s, a, sp)
@@ -115,6 +111,24 @@ function wordle_reward(s, a)
     # if we want to use the Wordle.CORRECT and other symbols, we need to include the "game" object 
     # in this function... which would mean it either has to be encoded in the state or it has to be a 
     # global variable 
+
+    # Sunberg says: 
+
+    # but if you add rewards heuristically based on your human intuition, 
+    # it is easy to create a (PO)MDP with an optimal policy does not achieve 
+    # optimal performance with respect to the original objective. For example, 
+    # if you added a heuristic reward for always guessing e's since they are common, 
+    # the algorithm might over-guess e's even when its probability of winning is higher with another letter.
+
+    # in this case, maybe just a negative reward for an incorrect guess (maybe larger negatives depending on the guess number)
+    # and then a large reward if the guess is correct?
+    if s[1] == a 
+        # we found the word 
+        # if we decide to define the state as a vector, make sure to get the word part of it 
+        return 100.0
+    else 
+        return -1.0
+    end
 end
 
 function wordle_init()
@@ -139,3 +153,6 @@ function wordle(gamma=0.99)
     )
     return m
 end
+
+# perform some testing on the POMDP? 
+# see POMDPTesting.jl
