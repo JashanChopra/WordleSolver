@@ -44,7 +44,7 @@ function evaluate_policy(m, policy, n)
     correct = 0         # the number of games that were solved correctly
     total_score = 0.0   # the running score over all games 
     for i in 1:n
-        global game = create_random_game() # create a random game 
+        game = create_random_game() # create a random game 
 
         # the game score cooresponds to the number of tries: the higher the score, the worse the policy
         max_tries = 6.0 
@@ -66,4 +66,9 @@ function evaluate_policy(m, policy, n)
     end
     # return the average game reward and number correct            
     return total_score / n, correct 
+end
+
+function evaluate_hard_words()
+    # see how the solver does against some particularly tricky words 
+    hard_words = ["PIZZA", "WATCH"]
 end

@@ -1,4 +1,4 @@
-# This script defines Wordle as a POMDP for usage with the typical Julia libraries
+# This script defines Wordle as a MDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: Uniform, Deterministic
@@ -153,6 +153,3 @@ function wordle(gamma=0.99)
     )
     return m
 end
-
-# perform some testing on the POMDP? 
-# see POMDPTesting.jl

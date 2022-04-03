@@ -13,7 +13,8 @@ using BeliefUpdaters
     # this is where I get confused 
     # it seems like there's different ways to solve POMDPs and MDPs 
     # or at least evaluate them? 
-
+# overall we can use this cancer problem to test out our policies to help debug if issues 
+# lie within the WordlePOMDP or within the policy / solver method 
 
 function cancer_transition(s, a)
     # transition function for the cancer POMDP provided
@@ -105,7 +106,6 @@ function question1()
     policy = FunctionPolicy(o->wait())
     sim = RolloutSimulator(max_steps=100)
     results = mean(simulate(sim, m, policy) for _ in 1:10000)
-    # print the mean reward
     println("Mean Reward from 10,000 Runs: ", results)
 
     # Evaluate with the QMDP Solver
@@ -126,11 +126,10 @@ function question1()
     a = action(policy, b)
     println("Given belief ", b, " we choose action ", a)
 
-    # note: this will not work with the policy defined from QMDPSolver... why? 
-    # sim = RolloutSimulator(max_steps=100)
-    # results = mean(simulate(sim, m, policy) for _ in 1:10000)
-    # # print the mean reward
-    # println("Mean Reward from 10,000 Runs: ", results)
+    # solve with SARSA solver
+    sarsop_p = solve(SARSOPSolver(), m)
+    up = DiscreteUpdater(m)
+    @show mean(simulate(RolloutSimulator(), m, sarsop_p, up) for _ in 1:1000) 
 end
 
 # wrap the question inside a timing function 
