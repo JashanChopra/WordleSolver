@@ -8,14 +8,22 @@ include("./helper.jl")
 
 function wordle_states()
     # the total state space is the list of all valid words
-    # :return: Vector{String}, a list of valid Wordle actions
-    return deepcopy(Wordle.VALID_WORD_LIST)
+    # along with the range of game turns (0-7)
+    # :return: Vector{Tuple(String, Int64)}, a list of valid Wordle actions
+    turn_range = collect(0:7)        
+    words = deepcopy(Wordle.VALID_WORD_LIST)
 
+    # create all possible tuples 
+    states = Tuple{String, Int64}[]
+    for t in turn_range
+        for w in words
+            push!(states, (w, t))
+        end
+    end
+    return states
     # notes: 
-        # we might want to include the number of turns in the state space
-        # we could represent the state as a vector: 
-            # [String, Int64]
         # if we wanted both of them to be Int64 we could construct a mapping of Int64 to the Wordle.VALID_WORD_LIST
+        # not sure if this will be necesarry, storing the strings doesn't seem to be a big deal 
 end
 
 function wordle_actions()
