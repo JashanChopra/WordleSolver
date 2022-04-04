@@ -6,11 +6,6 @@ using Wordle
 using Combinatorics
 include("./helper.jl")
 
-function words() 
-    # return the word list
-    return deepcopy(Wordle.VALID_WORD_LIST)
-end
-
 function wordle_states()
     # the total state space is the list of all valid words
     # along with the range of game turns (0-7)
@@ -42,6 +37,11 @@ function wordle_actions()
 end
 
 function wordle_observations()
+    # :return: Vector{String}, a list of valid Wordle actions
+    return words
+
+    # the below cooresponds to option 2.) in the observation probability function notes
+
     # :output: observations: Array[Array[Symbol]]
     # the wordle symbols correspond to the following:
         # Wordle.CORRECT : "green" guess
@@ -51,23 +51,23 @@ function wordle_observations()
     # example: [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT, Wordle.CORRECT, Wordle.INCORRECT]
     # the total observation space is all possible 5-letter combinations of the set [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT]
     
-    # the possible symbols 
-    symbols = [:c, :p, :i]
+    # # the possible symbols 
+    # symbols = [:c, :p, :i]
 
-    # get all possible 5 letter combinations of those three symbols 
-    unique_sets = with_replacement_combinations(symbols, 5)
+    # # get all possible 5 letter combinations of those three symbols 
+    # unique_sets = with_replacement_combinations(symbols, 5)
 
-    # then, get all permutations of each of those combinations
-    final_vec = []
-    for set in unique_sets
-        allperms = permutations(set, 5)
-        for perm in allperms
-            # push them to a single array 
-            push!(final_vec, perm)
-        end
-    end
-    final_obs = unique(final_vec)
-    return final_obs
+    # # then, get all permutations of each of those combinations
+    # final_vec = []
+    # for set in unique_sets
+    #     allperms = permutations(set, 5)
+    #     for perm in allperms
+    #         # push them to a single array 
+    #         push!(final_vec, perm)
+    #     end
+    # end
+    # final_obs = unique(final_vec)
+    # return final_obs
 end
 
 function wordle_transition(s, a)
@@ -87,22 +87,38 @@ end
 
 function wordle_observation_probs(s, a, sp)
     # observation should be a function that takes in s, a, and sp, and returns the distribution of o
-    
-    # this function is theoretically fairly straightforward but it may be hard to implement 
 
     # from our observation, we can eliminate states that definately aren't the correct word
         # i.e: if our observation contains an "INCORRECT" observation for the letter "a" 
             # then any word with "a" in it can be eliminated 
         # once we've eliminated the correct words, there is a uniform probability of it being any remaining word
             # this is because the word is picked at random without any human input 
-    words = deepcopy(Wordle.VALID_WORD_LIST)
-    
-    # the state is our target word (game.target)
+    # the state is our target word
     # the action is the word we guessed
-    # the state_prime is also the target word, since our state never actually changes?
 
-    leftover_possibilities = []
-    Uniform(leftover_possibilities)
+    # right now I have 1.) implemented... (from notes below)
+    if s == a 
+        # if our guess is correct, then we are 100% certain of the observation
+        return Deterministic(s)
+    else
+        # otherwise, uniform prob of remaining possible words
+        leftovers = get_possible_words(s, a)
+        return Uniform(leftovers)
+    end
+
+    # notes:
+        # I see two possibilities for the observation space and the observation function
+        
+        # 1.) The observation space is all words, and the observation function returns
+            # a uniform probability distribution among the remaining words 
+
+        # 2.) The observation space is all possible 5-letter combinations of the set [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT]
+            # in this case, the observation function will always be perfect - there is no uncertainity in our observation 
+
+        # Option 2 makes sense to me with what the "observation" actually is - what we see on the screen. However, the observation 
+            # function then doesn't make much sense to me, because how will this help us solve the POMDP and update our belief over time? 
+            # the first option's observation space doesn't make a lot of sense, but the observation function is what a human would use 
+            # essentially to update their personal belief. 
 end
 
 function wordle_reward(s, a)
@@ -170,4 +186,5 @@ function wordle(gamma=0.99)
     return m
 end
 
-wordle_observations()
+# wordle_observation_probs("house", "flame", "na")
+wordle_observation_probs("house", "horse", "na")

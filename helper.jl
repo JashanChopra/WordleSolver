@@ -2,6 +2,11 @@
 using Wordle 
 using POMDPs: actions
 
+function words() 
+    # return the word list
+    return deepcopy(Wordle.VALID_WORD_LIST)
+end
+
 function winning_policy(m, game)
     # a policy that always guesses the correct word 
     # :return: String, a Wordle guess
@@ -28,8 +33,51 @@ function create_game(word)
     return WordleGame(word)
 end
 
-function get_possible_words()
+function is_letter_in_word(letter, word) 
+    # :param: letter: Char, a letter
+    # :param: word: String, a word
+    # :return: Bool, true if the letter is in the word, false otherwise
+    return occursin(letter, word)
+end
 
+function is_letter_in_spot_in_word(letter, idx, word)
+    # :param: letter: Char, a letter
+    # :param: idx: Int, the index of the letter in the guesed word
+    # :param: word: String, a word
+    # :return: Bool, true if the letter is at spot idx in a word
+    return word[idx] == letter
+end
+
+function get_possible_words(word, guess)
+    # :param: word: String, a valid Wordle word
+    # :param: guess: String, a valid Wordle word
+    # :return: Vector{String}, a list of valid Worldle words
+    list = words()
+
+    # use the Wordle.jl wrappers for ease 
+    g = WordleGame(word)
+    resp = Wordle.guess(g, guess).result
+
+    # construct tuples with letter of the guess, the result, and it's position 
+    tuples = Tuple{Char, Symbol, Int64}[]
+    for (idx, r) in enumerate(resp) 
+        push!(tuples, (guess[idx], r, idx))
+    end
+
+    # for each letter in the guess, remove words from the list
+    for (letter, resp, idx) in tuples 
+        if resp == Wordle.INCORRECT 
+            # if the response is incorrect, remove any word with that letter 
+            list = filter!((w) -> ~is_letter_in_word(letter, w), list)
+        elseif resp == Wordle.PRESENT
+            # if the response is present, remove any word without that letter
+            list = filter!((w) -> is_letter_in_word(letter, w), list)
+        elseif resp == Wordle.CORRECT 
+            # if the response is correct, remove any word without that letter in that exact spot
+            list = filter!((w) -> is_letter_in_spot_in_word(letter, idx, w), list) 
+        end
+    end
+    return list
 end
 
 function evaluate_policy(m, policy, n)
@@ -72,3 +120,44 @@ function evaluate_hard_words()
     # see how the solver does against some particularly tricky words 
     hard_words = ["PIZZA", "WATCH"]
 end
+
+# for testing some of the word removal logic
+function test(word, guess)
+    list = ["HELLO", "WORLD", "GUESS", "GAMES", "PIZZA", "WATCH"]
+
+    # use the Wordle.jl wrappers for ease 
+    g = WordleGame(word)
+    resp = Wordle.guess(g, guess).result
+
+    # construct tuples with letter of the guess, the result, and it's position 
+    tuples = Tuple{Char, Symbol, Int64}[]
+    for (idx, r) in enumerate(resp) 
+        push!(tuples, (guess[idx], r, idx))
+    end
+
+    println(list)
+    # for each letter in the guess, remove words from the list
+    for (letter, resp, idx) in tuples 
+        if resp == Wordle.INCORRECT 
+            # if the response is incorrect, remove any word with that letter 
+            list = filter!((w) -> ~is_letter_in_word(letter, w), list)
+            println("Incorrect: Letter and the idx: ", letter, idx)
+            println(list)
+        elseif resp == Wordle.PRESENT
+            # if the response is present, remove any word without that letter
+            list = filter!((w) -> is_letter_in_word(letter, w), list)
+            println("Present: Letter and the idx: ", letter, idx)
+            println(list)
+        elseif resp == Wordle.CORRECT 
+            # if the response is correct, remove any word without that letter in that exact spot
+            list = filter!((w) -> is_letter_in_spot_in_word(letter, idx, w), list) 
+            println("Correct: Letter and the idx: ", letter, idx)
+            println(list)
+        end
+    end
+    println(list)
+end
+
+# word = "WATCH"
+# guess = "PIZZA"
+# test(word, guess)
