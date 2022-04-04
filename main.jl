@@ -1,7 +1,11 @@
 using POMDPPolicies: RandomPolicy
 using POMDPSimulators: RolloutSimulator
-using POMDPs: simulate
+using POMDPs
 using Statistics: mean
+using SARSOP: SARSOPSolver
+using QMDP: QMDPSolver
+using BeliefUpdaters: DiscreteUpdater
+using POMDPSimulators: RolloutSimulator
 
 # include functions that contain your policies for testing 
 include("./wordle_pomdp.jl")
@@ -26,14 +30,17 @@ function main()
     # note: the worse possible score is 7.0
         # if we win in 6 turns, the score is 6.0 
         # if the game isn't won (i.e: the 6th guess is wrong), the score is 7.0 
-    n = 1000
+    n = 100
     println("Testing a random policy")
     policy = random_policy
     @time reward, correct = evaluate_policy(m, policy, n)
     println("The average reward over ", n, " games for the random policy was: ", reward)
     println("Out of ", n, " games, ", correct, " were correctly guessed")
 
-    # additional simulations here
+    # solve with SARSA solver
+    sarsop_p = solve(SARSOPSolver(), m)
+    up = DiscreteUpdater(m)
+    @show mean(simulate(RolloutSimulator(), m, sarsop_p, up) for _ in 1:100) 
 end
 
 main()

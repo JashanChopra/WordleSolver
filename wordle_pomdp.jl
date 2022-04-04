@@ -33,12 +33,12 @@ function wordle_actions()
     # the total action space is all the valid words, 
     # we have to make a guess each turn  
     # :return: Vector{String}, a list of valid Wordle actions
-    return words
+    return words()
 end
 
 function wordle_observations()
     # :return: Vector{String}, a list of valid Wordle actions
-    return words
+    return words()
 
     # the below cooresponds to option 2.) in the observation probability function notes
 
@@ -164,7 +164,7 @@ end
 
 function wordle_init()
     # the initial state is a random word at turn 0
-    words_at_turn_zero = wordle_states[0:length(words())]
+    words_at_turn_zero = wordle_states()[1:length(words())]
     return Uniform(words_at_turn_zero)
 end
 
@@ -185,6 +185,3 @@ function wordle(gamma=0.99)
     )
     return m
 end
-
-# wordle_observation_probs("house", "flame", "na")
-wordle_observation_probs("house", "horse", "na")
