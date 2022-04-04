@@ -72,7 +72,7 @@ end
 
 function wordle_transition(s, a)
     # transition function for Wordle, given the state and action 
-    words_at_turn_zero = wordle_states[0:length(words())]
+    words_at_turn_zero = wordle_states()[1:length(words())]
     if s[1] == a 
         # if we guess the correct word, reset the state 
         return Uniform(words_at_turn_zero)
