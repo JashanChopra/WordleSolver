@@ -4,7 +4,10 @@ using POMDPs: actions
 
 function words() 
     # return the word list
-    return deepcopy(Wordle.VALID_WORD_LIST)
+    # return deepcopy(Wordle.VALID_WORD_LIST)
+
+    # for testing with a much smaller list 
+    return deepcopy(["HELLO", "WORLD", "GUESS", "GAMES", "PIZZA", "WATCH"])
 end
 
 function winning_policy(m, game)
@@ -77,6 +80,13 @@ function get_possible_words(word, guess)
             list = filter!((w) -> is_letter_in_spot_in_word(letter, idx, w), list) 
         end
     end
+
+    if isempty(list)
+        println(word, guess)
+        println(list)
+        throw(ArgumentError("List cannot be empty"))
+    end
+
     return list
 end
 
@@ -158,6 +168,6 @@ function test(word, guess)
     println(list)
 end
 
-# word = "WATCH"
-# guess = "PIZZA"
-# test(word, guess)
+word = "WATCH"
+guess = "WATCH"
+te

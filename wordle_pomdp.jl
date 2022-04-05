@@ -4,6 +4,7 @@ using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: Uniform, Deterministic
 using Wordle
 using Combinatorics
+using StaticArrays
 include("./helper.jl")
 
 function wordle_states()
@@ -11,15 +12,15 @@ function wordle_states()
     # along with the range of game turns (0-7)
     # 0 is the starting state, no guesses have been made 
     # if we get to turn 7, we failed the game
-    # :return: Vector{Tuple(String, Int64)}, a list of valid Wordle actions
+    # :return: Vector{Vector(String, Int64)}, a list of valid Wordle actions
     turn_range = collect(0:7)        
     wordle_words = words()
 
     # create all possible tuples 
-    states = Tuple{String, Int64}[]
+    states = Vector[]
     for t in turn_range
         for w in wordle_words
-            push!(states, (w, t))
+            push!(states, [w, t])
         end
     end
     return states
@@ -80,7 +81,8 @@ function wordle_transition(s, a)
         # if we are on the 7th turn, reset the state
         return Uniform(words_at_turn_zero)
     else 
-        # if we haven't guessed the word, and we have more turns left, the state remains the same
+        # if we haven't guessed the word, the word stays the same, increase turn num 
+        s[2] += 1
         return Deterministic(s)
     end
 end
@@ -97,12 +99,12 @@ function wordle_observation_probs(s, a, sp)
     # the action is the word we guessed
 
     # right now I have 1.) implemented... (from notes below)
-    if s == a 
+    if s[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
-        return Deterministic(s)
+        return Deterministic(s[1])
     else
         # otherwise, uniform prob of remaining possible words
-        leftovers = get_possible_words(s, a)
+        leftovers = get_possible_words(s[1], a)
         return Uniform(leftovers)
     end
 
@@ -127,6 +129,9 @@ function wordle_reward(s, a)
     if s[1] == a 
         # we found the word 
         return 100.0
+    elseif s[2] == 7 
+        # we failed the game 
+        return -25.0
     else
         # the loss is equal to the turn we are on
         return -1.0 * convert(Float64, s[2])
@@ -185,3 +190,5 @@ function wordle(gamma=0.99)
     )
     return m
 end
+
+wordle()

@@ -1,7 +1,9 @@
 using POMDPPolicies: FunctionPolicy, RandomPolicy
 using POMDPSimulators
 using Statistics: mean
-using POMDPs, QuickPOMDPs, POMDPModelTools, POMDPSimulators, QMDP
+using POMDPs, QuickPOMDPs, POMDPModelTools, POMDPSimulators
+using SARSOP: SARSOPSolver
+using QMDP: QMDPSolver
 using BeliefUpdaters
 
 
@@ -102,11 +104,11 @@ function question1()
         discount = 0.99
     )
         
-    # Evaluate with policy that always waits
-    policy = FunctionPolicy(o->wait())
-    sim = RolloutSimulator(max_steps=100)
-    results = mean(simulate(sim, m, policy) for _ in 1:10000)
-    println("Mean Reward from 10,000 Runs: ", results)
+    # # Evaluate with policy that always waits
+    # policy = FunctionPolicy(o->wait())
+    # sim = RolloutSimulator(max_steps=100)
+    # results = mean(simulate(sim, m, policy) for _ in 1:10000)
+    # println("Mean Reward from 10,000 Runs: ", results)
 
     # Evaluate with the QMDP Solver
     solver = QMDPSolver()
@@ -119,17 +121,17 @@ function question1()
     end
     println("Undiscounted reward was $rsum.")
 
-    # it seems with a "belief" we can then use the policy to choose an action 
-    # this may be how we do it with the POMDP method? 
-    # this is basically saying if our belief is that there is an equal probability between each state
-    b = uniform_belief(m) # initialize to a uniform belief
-    a = action(policy, b)
-    println("Given belief ", b, " we choose action ", a)
+    # # it seems with a "belief" we can then use the policy to choose an action 
+    # # this may be how we do it with the POMDP method? 
+    # # this is basically saying if our belief is that there is an equal probability between each state
+    # b = uniform_belief(m) # initialize to a uniform belief
+    # a = action(policy, b)
+    # println("Given belief ", b, " we choose action ", a)
 
     # solve with SARSA solver
-    sarsop_p = solve(SARSOPSolver(), m)
-    up = DiscreteUpdater(m)
-    @show mean(simulate(RolloutSimulator(), m, sarsop_p, up) for _ in 1:1000) 
+    # sarsop_p = solve(SARSOPSolver(), m)
+    # up = DiscreteUpdater(m)
+    # @show mean(simulate(RolloutSimulator(), m, sarsop_p, up) for _ in 1:1000) 
 end
 
 # wrap the question inside a timing function 
