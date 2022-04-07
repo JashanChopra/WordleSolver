@@ -7,6 +7,8 @@ using Combinatorics
 using StaticArrays
 include("./helper.jl")
 
+# see : https://juliapomdp.github.io/POMDPs.jl/latest/def_pomdp/
+
 function wordle_states()
     # the total state space is the list of all valid words
     # along with the range of game turns (0-7)
@@ -87,7 +89,7 @@ function wordle_transition(s, a)
     end
 end
 
-function wordle_observation_probs(s, a, sp)
+function wordle_observation_probs(a, sp)
     # observation should be a function that takes in s, a, and sp, and returns the distribution of o
 
     # from our observation, we can eliminate states that definately aren't the correct word
@@ -99,12 +101,12 @@ function wordle_observation_probs(s, a, sp)
     # the action is the word we guessed
 
     # right now I have 1.) implemented... (from notes below)
-    if s[1] == a 
+    if sp[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
-        return Deterministic(s[1])
+        return Deterministic(sp[1])
     else
         # otherwise, uniform prob of remaining possible words
-        leftovers = get_possible_words(s[1], a)
+        leftovers = get_possible_words(sp[1], a)
         return Uniform(leftovers)
     end
 
@@ -186,7 +188,8 @@ function wordle(gamma=0.99)
         observation = wordle_observation_probs,
         reward = wordle_reward,
         initialstate = wordle_init, 
-        discount = gamma
+        discount = gamma,
+        isterminal = s->s[2] == 7,  # is terminal if turn counter hits 7
     )
     return m
 end
