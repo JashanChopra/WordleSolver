@@ -8,7 +8,7 @@ function words()
     # return deepcopy(Wordle.VALID_WORD_LIST)
 
     # for testing with a much smaller list 
-    return deepcopy(["HELLO", "WORLD", "GUESS", "GAMES", "PIZZA", "WATCH"])
+    return deepcopy(["HELLO", "WORLD", "GUESS"])
 end
 
 function winning_policy(m, game)

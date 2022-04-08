@@ -85,12 +85,13 @@ function wordle_transition(s, a)
     else 
         # if we haven't guessed the word, the word stays the same, increase turn num 
         s[2] += 1
+        # sp = [s[1], s[2] + 1]
         return Deterministic(s)
     end
 end
 
 function wordle_observation_probs(a, sp)
-    # observation should be a function that takes in s, a, and sp, and returns the distribution of o
+    # observation should be a function that takes in a, and sp, and returns the distribution of o
 
     # from our observation, we can eliminate states that definately aren't the correct word
         # i.e: if our observation contains an "INCORRECT" observation for the letter "a" 
@@ -106,9 +107,16 @@ function wordle_observation_probs(a, sp)
         return Deterministic(sp[1])
     else
         # otherwise, uniform prob of remaining possible words
-        leftovers = get_possible_words(sp[1], a)
+        leftovers = get_possible_words(sp[1], a) # (true word, guess)
         return Uniform(leftovers)
     end
+
+    # this is an example of what path #2 would be like
+    # get_observation would return a vector like below 
+    # there is no uncertainity in this observation 
+    # [:c, :p, :c, :i, :i]
+    # o = get_observation(sp[1], a)
+    # return Deterministic(o)
 
     # notes:
         # I see two possibilities for the observation space and the observation function

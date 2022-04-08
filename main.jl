@@ -83,8 +83,8 @@ function qmdp_solve(m, discount=discount(m))
     mdp = UnderlyingMDP(m)
     
     # load in the transition matrices and rewards
-    T = transition_matrices(mdp)
-    R = reward_vectors(mdp)
+    T = POMDPModelTools.transition_matrices(mdp)
+    R = POMDPModelTools.reward_vectors(mdp)
     tol = 1e-35         # convergence tolerance
     loops = 1e7         # maximum number of 
     
@@ -97,6 +97,7 @@ function qmdp_solve(m, discount=discount(m))
     for (i, _) in enumerate(acts)
         push!(alphas, Qmatrix[i, :])
     end
+    println(alphas) 
     return HW6AlphaVectorPolicy(alphas, acts)
 end
 
@@ -128,8 +129,10 @@ function main()
     # println("Out of ", n, " games, ", correct, " were correctly guessed")
 
     # Evaluate with the HW6 QMDP Solver for checking     
-    solver = qmdp_solve(m)
-    up = HW6Updater(m)
+    # solver = qmdp_solve(m)
+    # up = HW6Updater(m)
+    solver = QMDPSolver()
+    up = DiscreteUpdater(m)
     policy = solve(solver, m)
     @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
     rsum = 0.0
