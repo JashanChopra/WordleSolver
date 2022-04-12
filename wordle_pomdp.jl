@@ -1,8 +1,7 @@
-# This script defines Wordle as a MDP for usage with the typical Julia libraries
+# This script defines Wordle as a POMDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
 using POMDPModelTools: Uniform, Deterministic
-using Wordle
 using Combinatorics
 using StaticArrays
 include("./helper.jl")
@@ -85,7 +84,6 @@ function wordle_transition(s, a)
     else 
         # if we haven't guessed the word, the word stays the same, increase turn num 
         s[2] += 1
-        # sp = [s[1], s[2] + 1]
         return Deterministic(s)
     end
 end
@@ -104,13 +102,17 @@ function wordle_observation_probs(a, sp)
     # right now I have 1.) implemented... (from notes below)
     if sp[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
+        # todo: the get_possible_words function should actually handle this case, so I don't think I need this extra if statement
         return Deterministic(sp[1])
     else
         # otherwise, uniform prob of remaining possible words
-        leftovers = get_possible_words(sp[1], a) # (true word, guess)
+        leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)
         return Uniform(leftovers)
     end
 
+    # leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)
+    # return Uniform(leftovers)
+    
     # this is an example of what path #2 would be like
     # get_observation would return a vector like below 
     # there is no uncertainity in this observation 
@@ -183,7 +185,7 @@ function wordle_init()
     return Uniform(words_at_turn_zero)
 end
 
-function wordle(gamma=0.99)
+function create_wordle(gamma=0.99)
     # construct a Wordle POMDP
     # :param: gamma: the discount factor
 
@@ -197,9 +199,8 @@ function wordle(gamma=0.99)
         reward = wordle_reward,
         initialstate = wordle_init, 
         discount = gamma,
-        isterminal = s->s[2] == 7,  # is terminal if turn counter hits 7
+        # todo: need to figure out how to have it be terminal if the state is the correct word...
+        isterminal = s->s[2] >= 7,  # is terminal if turn counter hits 7,
     )
     return m
 end
-
-wordle()

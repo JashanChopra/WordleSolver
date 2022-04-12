@@ -1,0 +1,96 @@
+include("./value_iteration.jl")
+using BeliefUpdaters
+
+# QMDP solver from HW6 
+# Updater structure and function 
+struct HW6Updater{M<:POMDP} <: Updater
+    m::M
+end
+
+function Z(m::POMDP, a, sp, o)
+    # return a probability from a POMDP's observation table for a given action, future state, and observation
+    return pdf(observation(m, a, sp), o)
+end
+
+function T(m::POMDP, s, a, sp)
+    # return a probability from a POMDP's transition table for a given state, action, and future state
+    return pdf(transition(m, s, a), sp)
+end
+
+function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
+    # perform a belief update with a discrete Bayesian filter
+    pomdp = updater.m
+    S = ordered_states(pomdp)
+
+    # the new belief
+    b_prime = zeros(length(S))
+
+    # update the belief vector for each state in the POMDP 
+    for (sp_idx, sp) in enumerate(S)
+        po = Z(pomdp, a, sp, o)
+        pt = 0.0 
+        if po == 0.0 
+            # if po is zero, we don't need to waste time calculating pt 
+            b_prime[sp_idx] = po
+        else
+            for (s_idx, s) in enumerate(S)
+                pt += T(pomdp, s, a, sp) * b.b[s_idx]
+            end
+            b_prime[sp_idx] = po * pt
+        end
+    end
+
+    # normalize the belief
+    b_prime ./= sum(b_prime) 
+
+    return DiscreteBelief(updater.m, b_prime, check=false)
+end
+
+function POMDPs.initialize_belief(updater::HW6Updater, distribution::Any)
+    # initialize the belief as a vector of zeros, with length equal to the number of states in the POMDP
+    states = ordered_states(updater.m)
+    belief = zeros(length(states))
+
+    # for each state, initialize a belief based on the given distribution 
+    for s in ordered_states(updater.m)
+        belief[stateindex(updater.m, s)] = pdf(distribution, s)
+    end
+    return DiscreteBelief(updater.m, belief)
+end
+
+# Policy & action function 
+struct HW6AlphaVectorPolicy{A} <: Policy
+    alphas::Vector{Vector{Float64}}
+    alpha_actions::Vector{A}
+end
+
+function POMDPs.action(p::HW6AlphaVectorPolicy, b::DiscreteBelief)
+    # given a belief b, find the alpha vector that gives the higehst value at that belief point
+    idx = argmax([dot(a, b.b) for a in p.alphas])
+    return p.alpha_actions[idx]
+end
+
+# QMDP Solver function 
+function qmdp_solve(m, discount=discount(m))
+
+    # turn the POMDP into an MDP and perform value iteration 
+    mdp = UnderlyingMDP(m)
+    
+    # load in the transition matrices and rewards
+    T = POMDPModelTools.transition_matrices(mdp)
+    R = POMDPModelTools.reward_vectors(mdp)
+    tol = 1e-35         # convergence tolerance
+    loops = 1e7         # maximum number of 
+    
+    # perform value iteration 
+    _, _, Qmatrix = value_iteration_vectorized(m, T, R, tol, discount, loops)
+
+    # the psuedoalpha vectors are the Qmatrix entries
+    acts = ordered_actions(m)
+    alphas = Vector{Float64}[]
+    for (i, _) in enumerate(acts)
+        push!(alphas, Qmatrix[i, :])
+    end
+    println(alphas) 
+    return HW6AlphaVectorPolicy(alphas, acts)
+end

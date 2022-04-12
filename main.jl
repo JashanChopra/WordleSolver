@@ -5,105 +5,24 @@ using POMDPModelTools
 using POMDPTesting
 using Statistics: mean
 using QMDP
+using SARSOP
 using BeliefUpdaters
 using LinearAlgebra: dot
 
 # include functions that contain policies for evaluation 
 include("./wordle_pomdp.jl")
 include("./helper.jl")
-include("./value_iteration.jl")
-
-# Updater structure and function 
-struct HW6Updater{M<:POMDP} <: Updater
-    m::M
-end
-
-function Z(m::POMDP, a, sp, o)
-    # return a probability from a POMDP's observation table for a given action, future state, and observation
-    return pdf(observation(m, a, sp), o)
-end
-
-function T(m::POMDP, s, a, sp)
-    # return a probability from a POMDP's transition table for a given state, action, and future state
-    return pdf(transition(m, s, a), sp)
-end
-
-function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
-    # perform a belief update with a discrete Bayesian filter
-    pomdp = updater.m
-    S = ordered_states(pomdp)
-
-    # the new belief
-    b_prime = zeros(length(S))
-
-    # update the belief vector for each state in the POMDP 
-    for (sp_idx, sp) in enumerate(S)
-        po = Z(pomdp, a, sp, o)
-        pt = 0.0 
-        for (s_idx, s) in enumerate(S)
-            pt += T(pomdp, s, a, sp) * b.b[s_idx]
-        end
-        b_prime[sp_idx] = po * pt
-    end
-
-    # normalize the belief
-    b_prime ./= sum(b_prime) 
-
-    return DiscreteBelief(updater.m, b_prime, check=true)
-end
-
-function POMDPs.initialize_belief(updater::HW6Updater, distribution::Any)
-    # initialize the belief as a vector of zeros, with length equal to the number of states in the POMDP
-    states = ordered_states(updater.m)
-    belief = zeros(length(states))
-
-    # for each state, initialize a belief based on the given distribution 
-    for s in ordered_states(updater.m)
-        belief[stateindex(updater.m, s)] = pdf(distribution, s)
-    end
-    return DiscreteBelief(updater.m, belief)
-end
-
-# Policy & action function 
-struct HW6AlphaVectorPolicy{A} <: Policy
-    alphas::Vector{Vector{Float64}}
-    alpha_actions::Vector{A}
-end
-
-function POMDPs.action(p::HW6AlphaVectorPolicy, b::DiscreteBelief)
-    # given a belief b, find the alpha vector that gives the higehst value at that belief point
-    idx = argmax([dot(a, b.b) for a in p.alphas])
-    return p.alpha_actions[idx]
-end
-
-# QMDP Solver function 
-function qmdp_solve(m, discount=discount(m))
-
-    # turn the POMDP into an MDP and perform value iteration 
-    mdp = UnderlyingMDP(m)
-    
-    # load in the transition matrices and rewards
-    T = POMDPModelTools.transition_matrices(mdp)
-    R = POMDPModelTools.reward_vectors(mdp)
-    tol = 1e-35         # convergence tolerance
-    loops = 1e7         # maximum number of 
-    
-    # perform value iteration 
-    _, _, Qmatrix = value_iteration_vectorized(m, T, R, tol, discount, loops)
-
-    # the psuedoalpha vectors are the Qmatrix entries
-    acts = ordered_actions(m)
-    alphas = Vector{Float64}[]
-    for (i, _) in enumerate(acts)
-        push!(alphas, Qmatrix[i, :])
-    end
-    println(alphas) 
-    return HW6AlphaVectorPolicy(alphas, acts)
-end
+include("./qmdp.jl")
 
 function main()
+    # for testing with a much smaller list 
+    @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
+
+    println("Starting Wordle Solver!")
+
     # define the wordle POMDP 
-    m = wordle() 
+    m = create_wordle() 
+    println("Created Wordle POMDP")
     @assert has_consistent_distributions(m)
 
     # # a policy that cheats to always get the correct answer
@@ -128,10 +47,24 @@ function main()
     # println("The average reward over ", n, " games for the random policy was: ", reward)
     # println("Out of ", n, " games, ", correct, " were correctly guessed")
 
-    # Evaluate with the HW6 QMDP Solver for checking     
-    # solver = qmdp_solve(m)
+    # println("-------------------------------------------------------------------")
+
+    # a heuristic policy based on eliminating words 
+    # n = 100
+    # println("Testing a heuristic policy")
+    # policy = heuristic_policy
+    # @time reward, correct = evaluate_policy(m, policy, n)
+    # println("The average reward over ", n, " games for the random policy was: ", reward)
+    # println("Out of ", n, " games, ", correct, " were correctly guessed")
+
+    # println("-------------------------------------------------------------------")
+
+    # # Evaluate with the HW6 QMDP Solver for checking     
+    # policy = qmdp_solve(m)
     # up = HW6Updater(m)
+    println("Testing a QMDP generated policy")
     solver = QMDPSolver()
+    # solver = SARSOPSolver()
     up = DiscreteUpdater(m)
     policy = solve(solver, m)
     @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
@@ -142,6 +75,8 @@ function main()
         rsum += r
     end
     println("Undiscounted reward was $rsum.")
+
+    # println("-------------------------------------------------------------------")
 end
 
 main()

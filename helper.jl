@@ -1,14 +1,12 @@
 # A series of helper wrapper functions for the Wordle.jl library  
-using Wordle 
 using POMDPs: actions
 using DataStructures: SortedSet
 
+include("./wordlegame.jl")
+
 function words() 
     # return the word list
-    # return deepcopy(Wordle.VALID_WORD_LIST)
-
-    # for testing with a much smaller list 
-    return deepcopy(["HELLO", "WORLD", "GUESS"])
+    return deepcopy(Wordle.VALID_WORD_LIST)
 end
 
 function winning_policy(m, game)
@@ -21,6 +19,23 @@ function random_policy(m, game)
     # a policy that returns a random action
     # :return: String, a Wordle guess
     return rand(actions(m))
+end
+
+function heuristic_policy(m, game)
+    # a policy that guesses a random word from an eliminated list 
+    # :return: String, a Wordle guess
+
+    # get the possible word list 
+    list = deepcopy(game.possible_word_list)
+
+    # guess a random word from that list 
+    guess = rand(list) 
+
+    # remove impossible answers based on that guess for next time 
+    new_list = get_possible_words(game.target, guess, list)
+    game.possible_word_list = deepcopy(new_list)
+
+    return guess 
 end
 
 function create_random_game()
@@ -52,12 +67,7 @@ function is_letter_in_spot_in_word(letter, idx, word)
     return word[idx] == letter
 end
 
-function get_possible_words(word, guess)
-    # :param: word: String, a valid Wordle word
-    # :param: guess: String, a valid Wordle word
-    # :return: Vector{String}, a list of valid Worldle words
-    list = words()
-
+function get_results(word, guess) 
     # our logic for marking letters as Correct, Incorrect, or Present is similar to 
     # Wordle.guess but we don't delete Correctletters from the SortedSets so that 
     # we don't mark Present letters as Incorrect if there is a Correct response for 
@@ -66,6 +76,7 @@ function get_possible_words(word, guess)
     # i.e if the target word is "WORLD" and the guess is "HELLO" the first "L" will 
     # be marked as INCORRECT. Which then results in us eliminating the correct word "WORLD"
     # The below code makes sure this scenario does not occur.
+
     results = [:i, :i, :i, :i, :i]
     for m in intersect(word, guess)
         # find the sets of positions for each matched letter
@@ -84,14 +95,34 @@ function get_possible_words(word, guess)
         end
     end
 
-    # construct tuples with letter of the guess, the result, and it's position 
+    # construct tuples with letter of the guess, the result, and it's position
     tuples = Tuple{Char, Symbol, Int64}[]
     for (idx, r) in enumerate(results) 
         push!(tuples, (guess[idx], r, idx))
     end
 
+    return tuples
+end
+
+function get_possible_words(word, guess, word_list)
+    # :param: word: String, a valid Wordle word
+    # :param: guess: String, a valid Wordle word
+    # :return: Vector{String}, a list of valid Worldle words
+    
+    # get tuples cooresponding to each letter and it's response
+    tuples = get_results(word, guess) 
+    
+    prev_letter = ""
+
     # for each letter in the guess, remove words from the list
+    list = deepcopy(word_list)
     for (letter, resp, idx) in tuples 
+
+        # if the letter is the same as the previous one, don't double remove words
+        if letter == prev_letter
+            continue 
+        end
+
         if resp == :i 
             # if the response is incorrect, remove any word with that letter 
             list = filter!((w) -> ~is_letter_in_word(letter, w), list)
@@ -102,10 +133,15 @@ function get_possible_words(word, guess)
             # if the response is correct, remove any word without that letter in that exact spot
             list = filter!((w) -> is_letter_in_spot_in_word(letter, idx, w), list) 
         end
+        prev_letter = letter
     end
 
     # the list should never be empty 
     if isempty(list)
+        println(word_list)
+        println(word)
+        println(guess)
+        println(list)
         throw(ArgumentError("List cannot be empty"))
     end
 

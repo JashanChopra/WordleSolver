@@ -12,6 +12,8 @@ using POMDPTesting
 using BasicPOMCP 
 using DiscreteValueIteration
 
+# testing function for evaluating policies with a different POMDP
+
 function cancer_transition(s, a)
     # transition function for the cancer POMDP provided
     # takes in s and a and returns the distribution of s'
