@@ -87,6 +87,8 @@ function get_results(word, guess)
         # remove the position from the position sets
         for correct_position in intersect(target_positions, guess_positions)
             results[correct_position] = :c
+            delete!(target_positions, correct_position)  
+            delete!(guess_positions, correct_position) 
         end
 
         # pair off the remainining positions and mark them as present
@@ -112,14 +114,34 @@ function get_possible_words(word, guess, word_list)
     # get tuples cooresponding to each letter and it's response
     tuples = get_results(word, guess) 
     
-    prev_letter = ""
+    # there are a few edge cases to consider: 
+        # 1. if a letter is correct, and another instance if that letter appears, it will be incorrect 
+            # in this case, we don't want to remove every word without the "incorrect" letter, because 
+            # that would remove the correct word 
+        # 2. the same case above will occur if the first letter is present, and only one instance of that 
+            # letter appears in the target word
 
     # for each letter in the guess, remove words from the list
     list = deepcopy(word_list)
     for (letter, resp, idx) in tuples 
+        skip = false
 
-        # if the letter is the same as the previous one, don't double remove words
-        if letter == prev_letter
+        # edge case 1 & 2
+        if resp == :i 
+            # skip if the letter is correct elsewhere
+            for (l, r, i) in tuples 
+                if l == letter 
+                    if r == :c && i != idx 
+                        skip = true 
+                    elseif r == :p && i != idx 
+                        skip = true 
+                    end
+                end
+            end
+        end
+
+        # if our edge cases hit, we skip 
+        if skip == true 
             continue 
         end
 
@@ -141,7 +163,7 @@ function get_possible_words(word, guess, word_list)
         println(word_list)
         println(word)
         println(guess)
-        println(list)
+        println(tuples)
         throw(ArgumentError("List cannot be empty"))
     end
 
