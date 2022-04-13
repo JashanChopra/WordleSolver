@@ -5,5 +5,3 @@ Team Members:
 - Jashan Chopra
 - Fernando Palafox 
 - Amit Dubey 
-
-Testing Fernando can edit stuff
