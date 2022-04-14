@@ -28,8 +28,7 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
     # Number of words in observation
     n = length(o[1])
     print("\n\nAction: ",a)
-    # print("\nNumber of words in observation: ",length(o[1]))
-    print("\nObservation: ",o[1])
+    print("\nObservation: ",o)
 
     # If we run out of words just set belief as a uniform distribution since state is gonna reset anyways
     if o[2] + 1 >= 7
