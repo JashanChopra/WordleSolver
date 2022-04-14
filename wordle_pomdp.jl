@@ -106,7 +106,7 @@ function wordle_observation_probs(a, sp)
     if sp[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
         # todo: the get_possible_words function should actually handle this case, so I don't think I need this extra if statement
-        return Deterministic([sp[1],s[2]])
+        return Deterministic([[sp[1]],sp[2]])
     else
         # otherwise, uniform prob of remaining possible words
         leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)

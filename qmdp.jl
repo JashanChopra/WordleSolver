@@ -27,6 +27,9 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
 
     # Number of words in observation
     n = length(o[1])
+    print("\n\nAction: ",a)
+    # print("\nNumber of words in observation: ",length(o[1]))
+    print("\nObservation: ",o[1])
 
     # If we run out of words just set belief as a uniform distribution since state is gonna reset anyways
     if o[2] + 1 >= 7
@@ -34,16 +37,21 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
     end
 
     # Nasty for loops but probably a better way of doing this
+    print("\nNew belief for relevant states: b(s) = ",1/n)
+    print("\nIterating through observations to update belief for relevant states: ")
     for (_,o_word) in enumerate(o[1])
+        print("\n    Observation: ",o_word)
+        print("\n    Relevant states: ")
         for (s_idx, s) in enumerate(S)
             if s[1] == o_word && s[2] == o[2] + 1
+                print("\n        ",s)
                 b_prime[s_idx] = 1/n
             end
         end
     end
 
     # Check belief adds up to 1
-    b_prime_sum = sum(b_prime)
+    print("\nFinal sum of beliefs = ",sum(b_prime))
 
     return DiscreteBelief(updater.m, b_prime, check=false)
 end
