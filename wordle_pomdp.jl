@@ -39,6 +39,18 @@ function wordle_actions()
 end
 
 function wordle_observations()
+    # turn_range = collect(0:7)        
+    # wordle_words = words()
+
+    # observations = Vector[]
+    # for t in turn_range
+    #     for w in wordle_words
+    #         push!(states, [w, t])
+    #     end
+    # end
+    # return states
+
+
     # :return: Vector{String}, a list of valid Wordle actions
     return words()
 
@@ -89,50 +101,18 @@ function wordle_transition(s, a)
 end
 
 function wordle_observation_probs(a, sp)
-    # observation should be a function that takes in a, and sp, and returns the distribution of o
 
-    # from our observation, we can eliminate states that definately aren't the correct word
-        # i.e: if our observation contains an "INCORRECT" observation for the letter "a" 
-            # then any word with "a" in it can be eliminated 
-        # once we've eliminated the correct words, there is a uniform probability of it being any remaining word
-            # this is because the word is picked at random without any human input 
-    # the state is our target word
-    # the action is the word we guessed
-
-    # right now I have 1.) implemented... (from notes below)
+    # MIGHT NOT NEED TO SEPARATE INTO TWO SCENARIOS 
     if sp[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
         # todo: the get_possible_words function should actually handle this case, so I don't think I need this extra if statement
-        return Deterministic(sp[1])
+        return Deterministic([sp[1],s[2]])
     else
         # otherwise, uniform prob of remaining possible words
         leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)
-        return Uniform(leftovers)
+        # return Uniform(leftovers)
+        return Deterministic([leftovers,sp[2]])
     end
-
-    # leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)
-    # return Uniform(leftovers)
-    
-    # this is an example of what path #2 would be like
-    # get_observation would return a vector like below 
-    # there is no uncertainity in this observation 
-    # [:c, :p, :c, :i, :i]
-    # o = get_observation(sp[1], a)
-    # return Deterministic(o)
-
-    # notes:
-        # I see two possibilities for the observation space and the observation function
-        
-        # 1.) The observation space is all words, and the observation function returns
-            # a uniform probability distribution among the remaining words 
-
-        # 2.) The observation space is all possible 5-letter combinations of the set [Wordle.CORRECT, Wordle.PRESENT, Wordle.INCORRECT]
-            # in this case, the observation function will always be perfect - there is no uncertainity in our observation 
-
-        # Option 2 makes sense to me with what the "observation" actually is - what we see on the screen. However, the observation 
-            # function then doesn't make much sense to me, because how will this help us solve the POMDP and update our belief over time? 
-            # the first option's observation space doesn't make a lot of sense, but the observation function is what a human would use 
-            # essentially to update their personal belief. 
 end
 
 function wordle_reward(s, a)
@@ -193,7 +173,7 @@ function create_wordle(gamma=0.99)
     m = QuickPOMDP(
         states = wordle_states,
         actions = wordle_actions,
-        observations = wordle_observations,
+        # observations = wordle_observations,
         transition = wordle_transition,
         observation = wordle_observation_probs,
         reward = wordle_reward,
@@ -201,6 +181,7 @@ function create_wordle(gamma=0.99)
         discount = gamma,
         # todo: need to figure out how to have it be terminal if the state is the correct word...
         isterminal = s->s[2] >= 7,  # is terminal if turn counter hits 7,
+        initialobs = Deterministic("placeholder")
     )
     return m
 end

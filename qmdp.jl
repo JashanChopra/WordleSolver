@@ -25,23 +25,25 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
     # the new belief
     b_prime = zeros(length(S))
 
-    # update the belief vector for each state in the POMDP 
-    for (sp_idx, sp) in enumerate(S)
-        po = Z(pomdp, a, sp, o)
-        pt = 0.0 
-        if po == 0.0 
-            # if po is zero, we don't need to waste time calculating pt 
-            b_prime[sp_idx] = po
-        else
-            for (s_idx, s) in enumerate(S)
-                pt += T(pomdp, s, a, sp) * b.b[s_idx]
+    # Number of words in observation
+    n = length(o[1])
+
+    # If we run out of words just set belief as a uniform distribution since state is gonna reset anyways
+    if o[2] + 1 >= 7
+        b_prime = b_prime*1/length(S)
+    end
+
+    # Nasty for loops but probably a better way of doing this
+    for (_,o_word) in enumerate(o[1])
+        for (s_idx, s) in enumerate(S)
+            if s[1] == o_word && s[2] == o[2] + 1
+                b_prime[s_idx] = 1/n
             end
-            b_prime[sp_idx] = po * pt
         end
     end
 
-    # normalize the belief
-    b_prime ./= sum(b_prime) 
+    # Check belief adds up to 1
+    b_prime_sum = sum(b_prime)
 
     return DiscreteBelief(updater.m, b_prime, check=false)
 end
@@ -52,8 +54,11 @@ function POMDPs.initialize_belief(updater::HW6Updater, distribution::Any)
     belief = zeros(length(states))
 
     # for each state, initialize a belief based on the given distribution 
+    # Only initialize states with index of 0
     for s in ordered_states(updater.m)
-        belief[stateindex(updater.m, s)] = pdf(distribution, s)
+        if s[2] == 0
+            belief[stateindex(updater.m, s)] = pdf(distribution, s)
+        end
     end
     return DiscreteBelief(updater.m, belief)
 end

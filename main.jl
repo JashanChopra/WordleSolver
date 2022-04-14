@@ -17,7 +17,7 @@ include("./qmdp.jl")
 function main()
     # for testing with a much smaller list 
     # note: restart VSCode if you plan on using the full list after running this 
-    # @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
+    @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
 
     println("Starting Wordle Solver!")
 
@@ -53,31 +53,31 @@ function main()
     # println("-------------------------------------------------------------------")
 
     # a heuristic policy based on eliminating words 
-    n = 1000
-    println("Testing a heuristic policy")
-    policy = heuristic_policy
-    @time reward, correct = evaluate_policy(m, policy, n)
-    println("The average reward over ", n, " games for the random policy was: ", reward)
-    println("Out of ", n, " games, ", correct, " were correctly guessed")
+    # n = 1000
+    # println("Testing a heuristic policy")
+    # policy = heuristic_policy
+    # @time reward, correct = evaluate_policy(m, policy, n)
+    # println("The average reward over ", n, " games for the random policy was: ", reward)
+    # println("Out of ", n, " games, ", correct, " were correctly guessed")
 
     # println("-------------------------------------------------------------------")
 
-    # # Evaluate with the HW6 QMDP Solver for checking     
-    # policy = qmdp_solve(m)
-    # up = HW6Updater(m)
-    # println("Testing a QMDP generated policy")
+    # Evaluate with the HW6 QMDP Solver for checking     
+    policy = qmdp_solve(m)
+    up = HW6Updater(m)
+    println("Testing a QMDP generated policy")
     # solver = QMDPSolver()
-    # # solver = SARSOPSolver()
+    # solver = SARSOPSolver()
     # up = DiscreteUpdater(m)
     # policy = solve(solver, m)
-    # @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
-    # rsum = 0.0
-    # for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
-    #     println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
-    #     println(r)
-    #     rsum += r
-    # end
-    # println("Undiscounted reward was $rsum.")
+    @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
+    rsum = 0.0
+    for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
+        println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
+        println(r)
+        rsum += r
+    end
+    println("Undiscounted reward was $rsum.")
 
     # println("-------------------------------------------------------------------")
 end
