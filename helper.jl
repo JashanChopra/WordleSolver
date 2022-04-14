@@ -1,13 +1,8 @@
 # A series of helper wrapper functions for the Wordle.jl library  
-using POMDPs: actions
+# using POMDPs: actions
 using DataStructures: SortedSet
 
 include("./wordlegame.jl")
-
-function words() 
-    # return the word list
-    return deepcopy(Wordle.VALID_WORD_LIST)
-end
 
 function winning_policy(m, game)
     # a policy that always guesses the correct word 
@@ -41,7 +36,7 @@ end
 function create_random_game()
     # :return: Wordlegame
     # create a random Wordle game 
-    word = rand(Wordle.VALID_WORD_LIST, 1)[1]
+    word = rand(words, 1)[1]
     return WordleGame(word)
 end
 
@@ -122,7 +117,7 @@ function get_possible_words(word, guess, word_list)
             # letter appears in the target word
 
     # for each letter in the guess, remove words from the list
-    list = deepcopy(word_list)
+    list = deepcopy(words)
     for (letter, resp, idx) in tuples 
         skip = false
 
@@ -160,10 +155,10 @@ function get_possible_words(word, guess, word_list)
 
     # the list should never be empty 
     if isempty(list)
-        println(word_list)
-        println(word)
-        println(guess)
-        println(tuples)
+        logging && println(word_list)
+        logging && println(word)
+        logging && println(guess)
+        logging && println(tuples)
         throw(ArgumentError("List cannot be empty"))
     end
 
@@ -195,8 +190,8 @@ function evaluate_policy(m, policy, n)
             # check if the word is correct
             if word == game.target
                 correct += 1
-                println("   Game ", i, " was correctly guessed in ", convert(Int, game_score), " guesses")
-                println("   The correct word was: ", game.target)
+                logging && println("   Game ", i, " was correctly guessed in ", convert(Int, game_score), " guesses")
+                logging && println("   The correct word was: ", game.target)
                 break
             end 
         end

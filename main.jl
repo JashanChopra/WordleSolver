@@ -1,27 +1,44 @@
+module WordleSolver
+
+# POMDP Modules
 using POMDPs
 using POMDPPolicies
 using POMDPSimulators
 using POMDPModelTools
 using POMDPTesting
-using Statistics: mean
 using QMDP
 using SARSOP
 using BeliefUpdaters
-using LinearAlgebra: dot
 
-# include functions that contain policies for evaluation 
+# Misc Modules
+using Statistics: mean
+using LinearAlgebra: dot
+using StatsBase: sample
+
+# additional functions
 include("./wordle_pomdp.jl")
 include("./helper.jl")
 include("./qmdp.jl")
 
-function main()
-    # for testing with a much smaller list 
-    # note: restart VSCode if you plan on using the full list after running this 
-    @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
+function main(debug, small, set_size)
+    # :param: logging: whether to print extra debugging statements 
+    # :param: small: use a smaller word list for testing 
 
-    println("Starting Wordle Solver!")
+    # set the logging bool 
+    global logging = debug
 
+    # set the word list 
+    full_set = deepcopy(Wordle.VALID_WORD_LIST)
+    if small 
+        small_set = sample(full_set, set_size; replace=false)
+        global words = small_set
+        logging && println(words)
+    else
+        global words = full_set
+    end
+    
     # define the wordle POMDP 
+    println("Starting Wordle Solver!")
     m = create_wordle() 
     println("Created Wordle POMDP")
 
@@ -64,30 +81,34 @@ function main()
 
     # Use HW6 updater
     up = HW6Updater(m)
-    println("Testing a QMDP generated policy")
+    println("Creating a policy using QMDP")
     policy = qmdp_solve(m)
-    @show policy
 
-    print("\nRunning regular simulation")
+    println("QMDP Rollout Simulator")
     @show mean(simulate(RolloutSimulator(max_steps = 10), m, policy, up) for _ in 1:1000)
-    # rsum = 0.0
-    # for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
-    #     println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
-    #     println(r)
-    #     rsum += r
-    # end
-    # println("Undiscounted reward was $rsum.")
 
     # History recorded to see how it's working
     # Running history recorder
-    print("\nRunning history recorder")
-    hr = HistoryRecorder(max_steps = 10)
+    println("Running history recorder with QMDP Policy")
+    hr = HistoryRecorder(max_steps = 10, show_progress=true)
     h = simulate(hr,m,policy,up)
-    println("Discounted reward = ", discounted_reward(h))
-    println("State history ", state_hist(h))
-    println("\nEach step a,o history: \n",collect(eachstep(h, "a,o")))
+    println("Discounted reward = ", discounted_reward(h)) 
+    logging && println("State history ", state_hist(h))
+    logging && println("Each step a,o history: \n",collect(eachstep(h, "a,o")))
 
-    # println("-------------------------------------------------------------------")
-end
+    if logging 
+        for (s, a, r, sp, o, bp) in eachstep(h, "(s, a, r, sp, o, bp)")    
+            println("For state $s, we guessed action $a")
+            # println("We saw observation $o, and updated the belief to be $(bp.b)")
+            println("We entered state $sp, and received reward $r")
+        end
+    end
 
-main()
+    println("-------------------------------------------------------------------")
+end # end main()
+end # end module
+
+debug = true    # log extra stuff throughout various files
+small = true    # test with a smaller word list 
+set_size = 100  # smaller word list size
+WordleSolver.main(debug, small, set_size)

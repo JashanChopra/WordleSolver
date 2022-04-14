@@ -1,9 +1,9 @@
 # This script defines Wordle as a POMDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
-using POMDPModelTools: Uniform, Deterministic
+# using POMDPModelTools: Uniform, Deterministic
 using Combinatorics
-using StaticArrays
+# using StaticArrays
 include("./helper.jl")
 
 # see : https://juliapomdp.github.io/POMDPs.jl/latest/def_pomdp/
@@ -15,7 +15,7 @@ function wordle_states()
     # if we get to turn 7, we failed the game
     # :return: Vector{Vector(String, Int64)}, a list of valid Wordle actions
     turn_range = collect(0:7)        
-    wordle_words = words()
+    wordle_words = deepcopy(words)
 
     # create all possible tuples 
     states = Vector[]
@@ -35,7 +35,7 @@ function wordle_actions()
     # the total action space is all the valid words, 
     # we have to make a guess each turn  
     # :return: Vector{String}, a list of valid Wordle actions
-    return words()
+    return words
 end
 
 function wordle_observations()
@@ -86,7 +86,7 @@ end
 
 function wordle_transition(s, a)
     # transition function for Wordle, given the state and action 
-    words_at_turn_zero = wordle_states()[1:length(words())]
+    words_at_turn_zero = wordle_states()[1:length(words)]
     if s[1] == a 
         # if we guess the correct word, reset the state 
         return Uniform(words_at_turn_zero)
@@ -109,7 +109,7 @@ function wordle_observation_probs(a, sp)
         return Deterministic([[sp[1]],sp[2]])
     else
         # otherwise, uniform prob of remaining possible words
-        leftovers = get_possible_words(sp[1], a, words()) # (true word, guess)
+        leftovers = get_possible_words(sp[1], a, words) # (true word, guess)
         # return Uniform(leftovers)
         return Deterministic([leftovers,sp[2]])
     end
@@ -120,15 +120,15 @@ function wordle_reward(s, a)
     # :param: a: the action, a Symbol object cooresponding to a 5 letter word from wordle_actions()
     if s[1] == a 
         # we found the word 
-        println("Correct word!")
+        logging && println("Correct word on turn ", s[2])
         return 100.0
     elseif s[2] == 7 
         # we failed the game 
-        println("Failed game")
+        logging && println("Failed game, we made it to turn 7")
         return -25.0
     else
         # the loss is equal to the turn we are on
-        println("Guess at turn ", s[2])
+        logging && println("Guess at turn ", s[2], " action: ", a, " target word: ", s[1])
         return -1.0 * convert(Float64, s[2])
     end
 
@@ -164,7 +164,7 @@ end
 
 function wordle_init()
     # the initial state is a random word at turn 0
-    words_at_turn_zero = wordle_states()[1:length(words())]
+    words_at_turn_zero = wordle_states()[1:length(words)]
     return Uniform(words_at_turn_zero)
 end
 
