@@ -1,9 +1,7 @@
 # This script defines Wordle as a POMDP for usage with the typical Julia libraries
 
 using QuickPOMDPs: QuickPOMDP
-# using POMDPModelTools: Uniform, Deterministic
 using Combinatorics
-# using StaticArrays
 include("./helper.jl")
 
 # see : https://juliapomdp.github.io/POMDPs.jl/latest/def_pomdp/

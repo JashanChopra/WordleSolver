@@ -1,5 +1,4 @@
 # A series of helper wrapper functions for the Wordle.jl library  
-# using POMDPs: actions
 using DataStructures: SortedSet
 
 include("./wordlegame.jl")
