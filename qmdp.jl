@@ -27,8 +27,8 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
 
     # Number of words in observation
     n = length(o[1])
-    print("\n\nAction: ",a)
-    print("\nObservation: ",o)
+    # print("\n\nAction: ",a)
+    # print("\nObservation: ",o)
 
     # If we run out of words just set belief as a uniform distribution since state is gonna reset anyways
     if o[2] + 1 >= 7
@@ -36,21 +36,21 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
     end
 
     # Nasty for loops but probably a better way of doing this
-    print("\nNew belief for relevant states: b(s) = ",1/n)
-    print("\nIterating through observations to update belief for relevant states: ")
+    # print("\nNew belief for relevant states: b(s) = ",1/n)
+    # print("\nIterating through observations to update belief for relevant states: ")
     for (_,o_word) in enumerate(o[1])
-        print("\n    Observation: ",o_word)
-        print("\n    Relevant states: ")
+        # print("\n    Observation: ",o_word)
+        # print("\n    Relevant states: ")
         for (s_idx, s) in enumerate(S)
             if s[1] == o_word && s[2] == o[2] + 1
-                print("\n        ",s)
+                # print("\n        ",s)
                 b_prime[s_idx] = 1/n
             end
         end
     end
 
     # Check belief adds up to 1
-    print("\nFinal sum of beliefs = ",sum(b_prime))
+    # print("\nFinal sum of beliefs = ",sum(b_prime))
 
     return DiscreteBelief(updater.m, b_prime, check=false)
 end
@@ -91,8 +91,8 @@ function qmdp_solve(m, discount=discount(m))
     # load in the transition matrices and rewards
     T = POMDPModelTools.transition_matrices(mdp)
     R = POMDPModelTools.reward_vectors(mdp)
-    tol = 1e-35         # convergence tolerance
-    loops = 1e7         # maximum number of 
+    tol = 1e-3         # convergence tolerance
+    loops = 1e6         # maximum number of 
     
     # perform value iteration 
     _, _, Qmatrix = value_iteration_vectorized(m, T, R, tol, discount, loops)

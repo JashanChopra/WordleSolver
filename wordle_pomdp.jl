@@ -120,12 +120,15 @@ function wordle_reward(s, a)
     # :param: a: the action, a Symbol object cooresponding to a 5 letter word from wordle_actions()
     if s[1] == a 
         # we found the word 
+        println("Correct word!")
         return 100.0
     elseif s[2] == 7 
         # we failed the game 
+        println("Failed game")
         return -25.0
     else
         # the loss is equal to the turn we are on
+        println("Guess at turn ", s[2])
         return -1.0 * convert(Float64, s[2])
     end
 

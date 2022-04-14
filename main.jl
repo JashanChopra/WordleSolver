@@ -62,22 +62,30 @@ function main()
 
     # println("-------------------------------------------------------------------")
 
-    # Evaluate with the HW6 QMDP Solver for checking     
-    policy = qmdp_solve(m)
+    # Use HW6 updater
     up = HW6Updater(m)
     println("Testing a QMDP generated policy")
-    # solver = QMDPSolver()
-    # solver = SARSOPSolver()
-    # up = DiscreteUpdater(m)
-    # policy = solve(solver, m)
-    @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
-    rsum = 0.0
-    for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
-        println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
-        println(r)
-        rsum += r
-    end
-    println("Undiscounted reward was $rsum.")
+    policy = qmdp_solve(m)
+    @show policy
+
+    print("\nRunning regular simulation")
+    @show mean(simulate(RolloutSimulator(max_steps = 10), m, policy, up) for _ in 1:1000)
+    # rsum = 0.0
+    # for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
+    #     println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
+    #     println(r)
+    #     rsum += r
+    # end
+    # println("Undiscounted reward was $rsum.")
+
+    # History recorded to see how it's working
+    # Running history recorder
+    print("\nRunning history recorder")
+    hr = HistoryRecorder(max_steps = 10)
+    h = simulate(hr,m,policy,up)
+    println("Discounted reward = ", discounted_reward(h))
+    println("State history ", state_hist(h))
+    println("\nEach step a,o history: \n",collect(eachstep(h, "a,o")))
 
     # println("-------------------------------------------------------------------")
 end
