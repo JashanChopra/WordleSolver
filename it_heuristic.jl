@@ -1,10 +1,10 @@
-using Wordle
-using JSON
+using JSON 
 using Flux
+using Wordle
 
 function get_priors()
-
-    prior_dict = JSON.parsefile("word_freq.txt")
+    filename = "./data/word_freq.txt"
+    prior_dict = JSON.parsefile(filename)
 
     words = collect(keys(prior_dict))
     freq = [get(prior_dict,word,0.0) for word in words]
@@ -17,10 +17,9 @@ function get_priors()
 
     xs = LinRange(c - x_width / 2, c + x_width / 2, length(words))
     return freq_dict = Dict(word => sigmoid(x) for (word, x) in zip(sort_word, xs))
-
 end
 
-function calc_entropy(word_list::Vector{String},possible_word_list::Vector{String})
+function calc_entropy(word_list::Vector{String},possible_word_list::Vector{String}, freq_dict)
     entropy = Vector{Float64}(undef, length(word_list))
     fill!(entropy,0.0)
     iter = 0
@@ -50,8 +49,7 @@ function calc_entropy(word_list::Vector{String},possible_word_list::Vector{Strin
     return entropy
 end
 
-function parse_result(game::WordleGame, iteration::Int64)
-
+function parse_result(game::Wordle.WordleGame, iteration::Int64)
     does_not_contain::String = ""
     contains::String = ""
     matches::Vector{Int64} = []
@@ -78,8 +76,10 @@ function parse_result(game::WordleGame, iteration::Int64)
     return does_not_contain_mod, contains, does_not_match, matches
 end
 
-function gen_new_list(game::WordleGame,prev_word_list::Vector{String},iteration::Int64,does_not_contain::String, contains::String, does_not_match::Vector{String}, matches::Vector{Int64})
-    
+function gen_new_list(game::Wordle.WordleGame,prev_word_list::Vector{String},
+                      iteration::Int64,does_not_contain::String, contains::String, 
+                      does_not_match::Vector{String}, matches::Vector{Int64}, word_list, freq_dict)
+
     new_word_list::Vector{String} = []
     new_word_list_prob = Vector{Float64}(undef,length(word_list))
     fill!(new_word_list_prob,0.0)
@@ -99,13 +99,7 @@ function gen_new_list(game::WordleGame,prev_word_list::Vector{String},iteration:
     return new_word_list, new_word_list_prob./sum(new_word_list_prob)
 end
 
-function read_words_file(filename::String)::Vector{String}
-    s = open(filename) do file
-        read(file, String)
-    end
-    s = replace(s, '\"' => "")
-    return split(s, ", ")
-end
+
 
 function my_log2(x::Float64)
     if x > 0.0
@@ -115,35 +109,34 @@ function my_log2(x::Float64)
     end
 end
 
-freq_dict = get_priors()
-word_list_test = read_words_file("solutions.txt")
-word_list = [word_list_test;read_words_file("options.txt")]
+function it_solver(m, game) 
+    # setup
+    freq_dict = get_priors()
+    word_list_test = deepcopy(VALID_SOLUTIONS_LIST)
+    word_list = [word_list_test; read_words_file("./data/options.txt")]
+    guess_word = "tares"            # initial guess
+    new_word_list = word_list 
 
-total_iterations = 0
-solved = 0
-counter = 0
-for word in word_list_test
-    global solved, total_iterations, word_list, word_list_test, counter
-    counter += 1
-    game = WordleGame(word)
+    # store the guesses
+    guesses = []
+    new_game = Wordle.WordleGame(game.target)
 
-    guess_word = "tares"
-    new_word_list = word_list
-
+    # todo: remove global variables, pass these in and modify them in place
+    # global word_list, freq_dict
     for iteration = 1:6
+        push!(guesses, guess_word)  # push our guesses to the list
 
-        total_iterations += 1
-        guess!(game, guess_word)
-
-        if game.target == guess_word
-            solved += 1
+        if guess_word == game.target 
             break
         end
+        Wordle.guess!(new_game, guess_word)    # guess and get a response
 
-        dnc,c,dnm,m = parse_result(game,iteration)
-        new_word_list,new_word_list_freq = gen_new_list(game,new_word_list,iteration,dnc,c,dnm,m)
-        entropy = calc_entropy(word_list,new_word_list)
- 
+        # calculate the entropy in remaining guesses
+        dnc,c,dnm,m = parse_result(new_game,iteration)
+        new_word_list,new_word_list_freq = gen_new_list(new_game,new_word_list,iteration,dnc,c,dnm,m,word_list,freq_dict)
+        entropy = calc_entropy(word_list,new_word_list,freq_dict)
+
+        # choose the next guess word based on the entropy
         if maximum(new_word_list_freq) > 0.35 
             guess_word = word_list[argmax(new_word_list_freq)]
         elseif (length(new_word_list) == 1)
@@ -152,13 +145,5 @@ for word in word_list_test
             guess_word = word_list[argmax(entropy)]
         end
     end
-
-    if(counter % 20) == 0
-        println(counter)
-        println(total_iterations/counter)
-        println(solved/counter)
-        println(counter-solved)
-        println("*********")
-    end
-
+    return guesses
 end

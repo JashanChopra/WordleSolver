@@ -3,25 +3,26 @@ using POMDPs: actions
 using DataStructures: SortedSet
 
 include("./wordlegame.jl")
+include("./it_heuristic.jl")
 
 function words() 
     # return the word list
     return deepcopy(Wordle.VALID_WORD_LIST)
 end
 
-function winning_policy(m, game)
+function winning_policy(m, game, i)
     # a policy that always guesses the correct word 
     # :return: String, a Wordle guess
     return game.target
 end
 
-function random_policy(m, game)
+function random_policy(m, game, i)
     # a policy that returns a random action
     # :return: String, a Wordle guess
     return rand(actions(m))
 end
 
-function heuristic_policy(m, game)
+function heuristic_policy(m, game, i)
     # a policy that guesses a random word from an eliminated list 
     # :return: String, a Wordle guess
 
@@ -38,10 +39,38 @@ function heuristic_policy(m, game)
     return guess 
 end
 
-function create_random_game()
+function it_heuristic_wrapper(m, game, i) 
+    # the information theory solver is pretty complex, so instead of requiring
+    # a policy that guesses the word, we just preconstruct the guess list 
+    # and then return that at eafh step
+    i = convert(Int, i)
+
+    # the first guess, fill out guesses using information theory 
+    if i == 0
+        guesses = it_solver(m, game)
+        game.preguesses = deepcopy(guesses)
+    end
+
+    # on the last step we don't need a guess, avoid index error
+    if i == 6 
+        i = 5
+    end
+
+    # return the precalculated guesses
+    return game.preguesses[i+1]
+end
+
+function create_random_game(sol_set = false)
     # :return: Wordlegame
     # create a random Wordle game 
-    word = rand(Wordle.VALID_WORD_LIST, 1)[1]
+    if sol_set 
+        # choose from the solution set
+        word = rand(VALID_SOLUTIONS_LIST, 1)[1]
+    else
+        # choose from the full set
+        word = rand(Wordle.VALID_WORD_LIST, 1)[1]
+    end
+    
     return WordleGame(word)
 end
 
@@ -170,7 +199,7 @@ function get_possible_words(word, guess, word_list)
     return list
 end
 
-function evaluate_policy(m, policy, n)
+function evaluate_policy(m, policy, n, printtf=true, sol_set = false)
     # a framework for evaluating Wordle games 
 
     # :param: m: WordlePOMDP, the Wordle POMDP
@@ -182,21 +211,21 @@ function evaluate_policy(m, policy, n)
     correct = 0         # the number of games that were solved correctly
     total_score = 0.0   # the running score over all games 
     for i in 1:n
-        game = create_random_game() # create a random game 
+        game = create_random_game(sol_set) # create a random game 
 
         # the game score cooresponds to the number of tries: the higher the score, the worse the policy
         max_tries = 6.0 
         game_score = 0.0
         while game_score <= max_tries 
             # all policies must take in the WordlePOMDP and the WordleGame objects
-            word = policy(m, game)
+            word = policy(m, game, game_score)
             game_score += 1.0
 
             # check if the word is correct
             if word == game.target
                 correct += 1
-                println("   Game ", i, " was correctly guessed in ", convert(Int, game_score), " guesses")
-                println("   The correct word was: ", game.target)
+                printtf && println("   Game ", i, " was correctly guessed in ", convert(Int, game_score), " guesses")
+                printtf && println("   The correct word was: ", game.target)
                 break
             end 
         end

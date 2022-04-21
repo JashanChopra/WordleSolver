@@ -14,10 +14,20 @@ include("./wordle_pomdp.jl")
 include("./helper.jl")
 include("./qmdp.jl")
 
+function read_words_file(filename::String)::Vector{String}
+    s = open(filename) do file
+        read(file, String)
+    end
+    s = replace(s, '\"' => "")
+    return split(s, ", ")
+end
+
 function main()
     # for testing with a much smaller list 
     # note: restart VSCode if you plan on using the full list after running this 
     # @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
+
+    global VALID_SOLUTIONS_LIST = read_words_file("./data/solutions.txt")
 
     println("Starting Wordle Solver!")
 
@@ -28,39 +38,49 @@ function main()
     # this takes a long time to run with the full state space, good for checking with smaller word list though 
     # @assert has_consistent_distributions(m)
 
-    # # a policy that cheats to always get the correct answer
-    # # note: the best possible score is 1.0 (the first guess wins) 
-    # n = 10 # number of games to run 
-    # println("Testing a cheating policy")
-    # policy = winning_policy
-    # @time reward, correct = evaluate_policy(m, policy, n)
-    # println("The average reward over ", n, " games for the cheating policy was: ", reward)
-    # println("Our of ", n, " games, ", correct, " were correctly guessed")
+    # a policy that cheats to always get the correct answer
+    # note: the best possible score is 1.0 (the first guess wins) 
+    n = 10 # number of games to run 
+    println("Testing a cheating policy")
+    policy = winning_policy
+    @time reward, correct = evaluate_policy(m, policy, n, false, true)
+    println("The average reward over ", n, " games for the cheating policy was: ", reward)
+    println("Our of ", n, " games, ", correct, " were correctly guessed")
 
-    # println("-------------------------------------------------------------------")
+    println("-------------------------------------------------------------------")
 
-    # # a policy that random guesses words
-    # # note: the worse possible score is 7.0
-    #     # if we win in 6 turns, the score is 6.0 
-    #     # if the game isn't won (i.e: the 6th guess is wrong), the score is 7.0 
-    # n = 100
-    # println("Testing a random policy")
-    # policy = random_policy
-    # @time reward, correct = evaluate_policy(m, policy, n)
-    # println("The average reward over ", n, " games for the random policy was: ", reward)
-    # println("Out of ", n, " games, ", correct, " were correctly guessed")
-
-    # println("-------------------------------------------------------------------")
-
-    # a heuristic policy based on eliminating words 
+    # a policy that random guesses words
+    # note: the worse possible score is 7.0
+        # if we win in 6 turns, the score is 6.0 
+        # if the game isn't won (i.e: the 6th guess is wrong), the score is 7.0 
     n = 1000
-    println("Testing a heuristic policy")
-    policy = heuristic_policy
-    @time reward, correct = evaluate_policy(m, policy, n)
+    println("Testing a random policy")
+    policy = random_policy
+    @time reward, correct = evaluate_policy(m, policy, n, false, true)
     println("The average reward over ", n, " games for the random policy was: ", reward)
     println("Out of ", n, " games, ", correct, " were correctly guessed")
 
-    # println("-------------------------------------------------------------------")
+    println("-------------------------------------------------------------------")
+
+    # a heuristic policy based on eliminating words 
+    n = 1000
+    println("Testing a elimination heuristic policy")
+    policy = heuristic_policy
+    @time reward, correct = evaluate_policy(m, policy, n, false, true)
+    println("The average reward over ", n, " games for the random policy was: ", reward)
+    println("Out of ", n, " games, ", correct, " were correctly guessed")
+
+    println("-------------------------------------------------------------------")
+
+    # a heuristic policy based on information theory 
+    n = 1000
+    println("Testing the information theory heuristic policy")
+    policy = it_heuristic_wrapper
+    @time reward, correct = evaluate_policy(m, policy, n, true, true)
+    println("The average reward over ", n, " games for the random policy was: ", reward)
+    println("Out of ", n, " games, ", correct, " were correctly guessed")
+
+    println("-------------------------------------------------------------------")
 
     # # Evaluate with the HW6 QMDP Solver for checking     
     # policy = qmdp_solve(m)
