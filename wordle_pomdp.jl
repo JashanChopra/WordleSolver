@@ -12,7 +12,7 @@ function wordle_states()
     # 0 is the starting state, no guesses have been made 
     # if we get to turn 7, we failed the game
     # :return: Vector{Vector(String, Int64)}, a list of valid Wordle actions
-    turn_range = collect(0:7)        
+    turn_range = collect(-1:7)        
     wordle_words = deepcopy(words)
 
     # create all possible tuples 
@@ -84,13 +84,18 @@ end
 
 function wordle_transition(s, a)
     # transition function for Wordle, given the state and action 
-    words_at_turn_zero = wordle_states()[1:length(words)]
+    # words_at_turn_zero = wordle_states()[1:length(words)]
+    # logging && println("TRANSITION: current state ",s, " action ", a)
     if s[1] == a 
-        # if we guess the correct word, reset the state 
-        return Uniform(words_at_turn_zero)
-    elseif s[2] == 7 
-        # if we are on the 7th turn, reset the state
-        return Uniform(words_at_turn_zero)
+        # if we guess the correct word, set turn number to -1
+        # logging && println("Correct word on turn ", s[2] + 1)
+        s[2] = -1
+        return Deterministic(s)
+    elseif s[2] == 7
+        # if we are on the 7th turn, set turn number to -1 bc 
+        # logging && println("Failed game, we made it to turn 7")
+        s[2] = -1
+        return Deterministic(s)
     else 
         # if we haven't guessed the word, the word stays the same, increase turn num 
         s[2] += 1
@@ -104,10 +109,13 @@ function wordle_observation_probs(a, sp)
     if sp[1] == a 
         # if our guess is correct, then we are 100% certain of the observation
         # todo: the get_possible_words function should actually handle this case, so I don't think I need this extra if statement
+        leftovers = get_possible_words(sp[1], a, words) # (true word, guess)
+        # logging && println("Observation: ", leftovers)
         return Deterministic([[sp[1]],sp[2]])
     else
         # otherwise, uniform prob of remaining possible words
         leftovers = get_possible_words(sp[1], a, words) # (true word, guess)
+        # logging && println("Observation: ", leftovers)
         # return Uniform(leftovers)
         return Deterministic([leftovers,sp[2]])
     end
@@ -118,15 +126,15 @@ function wordle_reward(s, a)
     # :param: a: the action, a Symbol object cooresponding to a 5 letter word from wordle_actions()
     if s[1] == a 
         # we found the word 
-        logging && println("Correct word on turn ", s[2])
+        # logging && println("Reward = 100")
         return 100.0
     elseif s[2] == 7 
         # we failed the game 
-        logging && println("Failed game, we made it to turn 7")
+        # logging && println("Reward = -25")
         return -25.0
     else
         # the loss is equal to the turn we are on
-        logging && println("Guess at turn ", s[2], " action: ", a, " target word: ", s[1])
+        # logging && println("Reward = ", -1.0 * convert(Float64, s[2]))
         return -1.0 * convert(Float64, s[2])
     end
 
@@ -162,7 +170,11 @@ end
 
 function wordle_init()
     # the initial state is a random word at turn 0
-    words_at_turn_zero = wordle_states()[1:length(words)]
+    words_at_turn_zero = wordle_states()[1+length(words):2*length(words)]
+
+    # Turn for initial states
+    # println("Initial state example ", words_at_turn_zero[1][2])
+
     return Uniform(words_at_turn_zero)
 end
 
@@ -181,7 +193,7 @@ function create_wordle(gamma=0.99)
         initialstate = wordle_init, 
         discount = gamma,
         # todo: need to figure out how to have it be terminal if the state is the correct word...
-        isterminal = s->s[2] >= 7,  # is terminal if turn counter hits 7,
+        isterminal = s->s[2] == -1,  # is terminal if state turns into -1
         initialobs = Deterministic("placeholder")
     )
     return m

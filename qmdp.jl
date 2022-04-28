@@ -50,6 +50,7 @@ function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
 
     # Check belief adds up to 1
     # print("\nFinal sum of beliefs = ",sum(b_prime))
+    # println("New belief vector ", b_prime)
 
     return DiscreteBelief(updater.m, b_prime, check=false)
 end
@@ -63,9 +64,13 @@ function POMDPs.initialize_belief(updater::HW6Updater, distribution::Any)
     # Only initialize states with index of 0
     for s in ordered_states(updater.m)
         if s[2] == 0
-            belief[stateindex(updater.m, s)] = pdf(distribution, s)
+            # belief[stateindex(updater.m, s)] = pdf(distribution, s)
+            # print("stateindex(updater.m, s)")
+            belief[stateindex(updater.m, s)] = 1/length(words)
         end
     end
+    # println("Initial belief = ",belief)
+    # print("\nFinal sum of beliefs = ",sum(belief))
     return DiscreteBelief(updater.m, belief)
 end
 
@@ -88,12 +93,17 @@ function qmdp_solve(m, discount=discount(m))
     mdp = UnderlyingMDP(m)
     
     # load in the transition matrices and rewards
-    T = POMDPModelTools.transition_matrices(mdp)
+    logging && println("Generating transition matrix")
+    T = POMDPModelTools.transition_matrices(mdp, sparse = true)
+    @show(T)
+    logging && println("Generating reward matrix")
     R = POMDPModelTools.reward_vectors(mdp)
     tol = 1e-3         # convergence tolerance
-    loops = 1e6         # maximum number of 
+    loops = 6         # maximum number of 
+    logging && println("size of transition matrix", size(T[actions(m)[1]]))
     
     # perform value iteration 
+    logging && println("Performing value iteration...")
     _, _, Qmatrix = value_iteration_vectorized(m, T, R, tol, discount, loops)
 
     # the psuedoalpha vectors are the Qmatrix entries
@@ -102,6 +112,6 @@ function qmdp_solve(m, discount=discount(m))
     for (i, _) in enumerate(acts)
         push!(alphas, Qmatrix[i, :])
     end
-    println(alphas) 
+    # println(alphas) 
     return HW6AlphaVectorPolicy(alphas, acts)
 end

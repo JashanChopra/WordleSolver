@@ -11,7 +11,7 @@ using SARSOP
 using BeliefUpdaters
 
 # Misc Modules
-using Statistics: mean
+using Statistics: mean, std
 using LinearAlgebra: dot
 using StatsBase: sample
 
@@ -84,25 +84,38 @@ function main(debug, small, set_size)
     println("Creating a policy using QMDP")
     policy = qmdp_solve(m)
 
+    # Run test trials
     println("QMDP Rollout Simulator")
-    @show mean(simulate(RolloutSimulator(max_steps = 10), m, policy, up) for _ in 1:1000)
-
-    # History recorded to see how it's working
-    # Running history recorder
-    println("Running history recorder with QMDP Policy")
-    hr = HistoryRecorder(max_steps = 10, show_progress=true)
-    h = simulate(hr,m,policy,up)
-    println("Discounted reward = ", discounted_reward(h)) 
-    logging && println("State history ", state_hist(h))
-    logging && println("Each step a,o history: \n",collect(eachstep(h, "a,o")))
-
-    if logging 
-        for (s, a, r, sp, o, bp) in eachstep(h, "(s, a, r, sp, o, bp)")    
-            println("For state $s, we guessed action $a")
-            # println("We saw observation $o, and updated the belief to be $(bp.b)")
-            println("We entered state $sp, and received reward $r")
+    trials = 1000
+    counter_vec = zeros(Int32,trials,1)
+    counter_mask = zeros(Bool,trials,1)
+    for i in 1:trials
+        s = [sample(words, 1)[1],0]
+        b = initialize_belief(up, Uniform)
+        r_total = 0.0
+        d = 1.0
+        counter = 0
+        while !isterminal(m, s)
+            a = action(policy, b)
+            sp = rand(transition(m, s, a))
+            o = rand(observation(m, s, a, sp))
+            r = reward(m, s, a, sp, o)
+            r_total += d*r
+            d *= discount(m)
+            b = update(up, b, a, o)
+            
+            counter += 1
+        end
+        counter < 7 && (counter_mask[i] = true)
+        counter_vec[i] = counter
+        if mod(i,50) == 0
+            println("Trial ",i, " score ", counter)
         end
     end
+    # Calculate Statistics
+    @show mean(counter_vec[counter_mask])
+    @show sum(counter_mask)/trials
+    @show std(counter_vec[counter_mask])
 
     println("-------------------------------------------------------------------")
 end # end main()
