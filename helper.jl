@@ -1,5 +1,4 @@
 # A series of helper wrapper functions for the Wordle.jl library  
-using POMDPs: actions
 using DataStructures: SortedSet
 
 include("./wordlegame.jl")
@@ -151,7 +150,7 @@ function get_possible_words(word, guess, word_list)
             # letter appears in the target word
 
     # for each letter in the guess, remove words from the list
-    list = deepcopy(word_list)
+    list = deepcopy(words)
     for (letter, resp, idx) in tuples 
         skip = false
 
@@ -189,10 +188,10 @@ function get_possible_words(word, guess, word_list)
 
     # the list should never be empty 
     if isempty(list)
-        println(word_list)
-        println(word)
-        println(guess)
-        println(tuples)
+        logging && println(word_list)
+        logging && println(word)
+        logging && println(guess)
+        logging && println(tuples)
         throw(ArgumentError("List cannot be empty"))
     end
 

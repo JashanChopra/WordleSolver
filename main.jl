@@ -1,15 +1,21 @@
+module WordleSolver
+
+# POMDP Modules
 using POMDPs
 using POMDPPolicies
 using POMDPSimulators
 using POMDPModelTools
 using POMDPTesting
-using Statistics: mean
 using QMDP
 using SARSOP
 using BeliefUpdaters
-using LinearAlgebra: dot
 
-# include functions that contain policies for evaluation 
+# Misc Modules
+using Statistics: mean, std
+using LinearAlgebra: dot
+using StatsBase: sample
+
+# additional functions
 include("./wordle_pomdp.jl")
 include("./helper.jl")
 include("./qmdp.jl")
@@ -22,16 +28,26 @@ function read_words_file(filename::String)::Vector{String}
     return split(s, ", ")
 end
 
-function main()
-    # for testing with a much smaller list 
-    # note: restart VSCode if you plan on using the full list after running this 
-    # @eval Wordle VALID_WORD_LIST = ["hello", "world", "guess", "pizza", "stand", "table", "watch"]
+function main(debug, small, set_size)
+    # :param: logging: whether to print extra debugging statements 
+    # :param: small: use a smaller word list for testing 
 
-    global VALID_SOLUTIONS_LIST = read_words_file("./data/solutions.txt")
+    # set the logging bool 
+    global logging = debug
 
-    println("Starting Wordle Solver!")
-
+    # set the word list 
+    full_set = read_words_file("./data/solutions.txt")
+    # full_set = deepcopy(Wordle.VALID_WORD_LIST)
+    if small 
+        small_set = sample(full_set, set_size; replace=false)
+        global words = small_set
+        logging && println(words)
+    else
+        global words = full_set
+    end
+    
     # define the wordle POMDP 
+    println("Starting Wordle Solver!")
     m = create_wordle() 
     println("Created Wordle POMDP")
 
@@ -82,24 +98,55 @@ function main()
 
     println("-------------------------------------------------------------------")
 
-    # # Evaluate with the HW6 QMDP Solver for checking     
-    # policy = qmdp_solve(m)
-    # up = HW6Updater(m)
-    # println("Testing a QMDP generated policy")
-    # solver = QMDPSolver()
-    # # solver = SARSOPSolver()
-    # up = DiscreteUpdater(m)
-    # policy = solve(solver, m)
-    # @show mean(simulate(RolloutSimulator(), m, policy, up) for _ in 1:1000)
-    # rsum = 0.0
-    # for (s,b,a,o,r) in stepthrough(m, policy, "s,b,a,o,r", max_steps=10)
-    #     println("s: $s, b: $([s=>pdf(b,s) for s in states(m)]), a: $a, o: $o")
-    #     println(r)
-    #     rsum += r
-    # end
-    # println("Undiscounted reward was $rsum.")
+    # Use HW6 updater
+    up = HW6Updater(m)
+    println("Creating a policy using QMDP")
+    t_policy = time()
+    policy = qmdp_solve(m);
+    println("Total time for policy generation = ", time() - t_policy, 's')
 
-    # println("-------------------------------------------------------------------")
-end
+    # Run test trials
+    trials = 1000
+    println("Running QMDP Rollout Simulator for ", trials," trials")
+    counter_vec = zeros(Int32,trials,1)
+    counter_mask = zeros(Bool,trials,1)
+    for i in 1:trials
+        s = [sample(words, 1)[1],0]
+        b = initialize_belief(up, Uniform)
+        r_total = 0.0
+        d = 1.0
+        counter = 0
+        while !isterminal(m, s)
+            a = action(policy, b)
+            sp = rand(transition(m, s, a))
+            o = rand(observation(m, s, a, sp))
+            r = reward(m, s, a, sp, o)
+            r_total += d*r
+            d *= discount(m)
+            b = update(up, b, a, o)
 
-main()
+            # logging && @show s, a, sp
+            # logging && @show o
+
+            s = sp
+            counter += 1
+        end
+        counter < 7 && (counter_mask[i] = true)
+        counter_vec[i] = counter
+        if mod(i,10) == 0
+            println("Trial ",i, " score ", counter)
+        end
+    end
+    # Calculate Statistics
+    @show mean(counter_vec[counter_mask])
+    @show sum(counter_mask)/trials
+    @show std(counter_vec[counter_mask])
+
+    println("-------------------------------------------------------------------")
+end # end main()
+end # end module
+
+debug = true    # log extra stuff throughout various files
+small = true    # test with a smaller word list 
+set_size = 100  # smaller word list size
+WordleSolver.main(debug, small, set_size)

@@ -1,3 +1,17 @@
 # Julia Requirements
 
-# add https://github.com/jowch/Wordle.jl.git
+using Wordle            # https://github.com/jowch/Wordle.jl.git
+using POMDPs
+using POMDPPolicies
+using POMDPSimulators
+using POMDPModelTools
+using POMDPTesting
+using QuickPOMDP
+using QMDP
+using SARSOP
+using BeliefUpdaters
+using Statistics
+using LinearAlgebra
+using StatsBase
+using DataStructures
+using Combinatorics
