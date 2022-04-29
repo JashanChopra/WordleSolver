@@ -13,7 +13,7 @@ alphabet = "abcdefghijklmnopqrstuvwxyz"
 const NUMBER_OF_ALPHABETS = 26
 const STATE_ELEMENTS_PER_ALPHABET = 5
 
-steps_to_play = 2000*4*2
+steps_to_play = 1
 
 word_list = Wordle.VALID_WORD_LIST[1:100]
 hot_encoded_list = Array{UInt8,2}(undef,length(word_list),NUMBER_OF_ALPHABETS*5)
@@ -75,7 +75,6 @@ function RLBase.reset!(env::WordleEnv{A,R}) where {A,R}
 end
 
 function (env::WordleEnv)(a::Vector{Float32})
-    #println(a)
     @assert a in env.action_space
     env.action = a
     _step!(env, a)
@@ -94,20 +93,27 @@ function _step!(env::WordleEnv, a)
         alphabet_index = findfirst(env.game.guesses[env.iteration].guess[index],alphabet)
         if env.game.guesses[env.iteration].result[index] == :🟩
             env.state[STATE_ELEMENTS_PER_ALPHABET*(alphabet_index-1)+index] = 0x2
+            env.reward += 5
+            for all_index in setdiff(1:26,alphabet_index)
+                env.state[STATE_ELEMENTS_PER_ALPHABET*(all_index-1)+index] = 0x0
+            end
         elseif env.game.guesses[env.iteration].result[index] == :🟨
-            env.state[STATE_ELEMENTS_PER_ALPHABET*(alphabet_index-1)+index] = 0x1
-        else
             env.state[STATE_ELEMENTS_PER_ALPHABET*(alphabet_index-1)+index] = 0x0
+            env.reward += 2
+        else
+            for all_index in 1:5
+                env.state[STATE_ELEMENTS_PER_ALPHABET*(alphabet_index-1)+all_index] = 0x0
+            end
         end
     end
 
     if (env.iteration == 6 || guessed_word == env.game.target)
-        #=if guessed_word != env.game.target
-            env.reward = -10
+        if guessed_word != env.game.target
+            env.reward = -20
         else
-            env.reward = 10
+            env.reward = 20
         end
-        =#
+        
         env.done = true
     end
     nothing
