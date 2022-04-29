@@ -6,15 +6,15 @@ struct HW6Updater{M<:POMDP} <: Updater
     m::M
 end
 
-function Z(m::POMDP, a, sp, o)
-    # return a probability from a POMDP's observation table for a given action, future state, and observation
-    return pdf(observation(m, a, sp), o)
-end
+# function Z(m::POMDP, a, sp, o)
+#     # return a probability from a POMDP's observation table for a given action, future state, and observation
+#     return pdf(observation(m, a, sp), o)
+# end
 
-function T(m::POMDP, s, a, sp)
-    # return a probability from a POMDP's transition table for a given state, action, and future state
-    return pdf(transition(m, s, a), sp)
-end
+# function T(m::POMDP, s, a, sp)
+#     # return a probability from a POMDP's transition table for a given state, action, and future state
+#     return pdf(transition(m, s, a), sp)
+# end
 
 function POMDPs.update(updater::HW6Updater, b::DiscreteBelief, a, o)
     # perform a belief update with a discrete Bayesian filter
@@ -86,6 +86,37 @@ function POMDPs.action(p::HW6AlphaVectorPolicy, b::DiscreteBelief)
     return p.alpha_actions[idx]
 end
 
+function generate_transition_mat(mdp::Union{MDP, POMDP})
+
+    A = ordered_actions(mdp)
+    S = ordered_states(mdp)
+    ns = length(S)
+    na = length(A)
+
+    logging && println("Preallocating")
+    T = Dict(name => zeros(Bool,ns,ns) for name in A)
+    for (a_idx,a) in enumerate(A)
+        logging && println("Action ", a)
+        for (s_idx,s) in enumerate(S)
+            if a == s[1] || s[2] == 7
+                # If action same as true word OR state corresponds to a pre-terminal state (tunr number = 7)
+                # everything stays at 0 except state with same target word but turn number -1 (terminal state)
+                println(a)
+                if mod(s_idx,na) == 0
+                    T[a][s_idx,na] = true
+                else
+                    T[a][s_idx,mod(s_idx,na)] = true
+                end
+            elseif s[2] != -1
+                # If action is anything else (but state isn't terminal), set state with same true word but next turn number to 1
+                T[a][s_idx,s_idx + na] = true
+            end
+            # Otherwise everything stays at zero
+        end
+    end
+    return(T)
+end
+
 # QMDP Solver function 
 function qmdp_solve(m, discount=discount(m))
 
@@ -93,18 +124,19 @@ function qmdp_solve(m, discount=discount(m))
     mdp = UnderlyingMDP(m)
     
     # load in the transition matrices and rewards
-    logging && println("Generating transition matrix")
-    T = POMDPModelTools.transition_matrices(mdp, sparse = true)
-    @show(T)
+    # logging && println("Generating transition matrix")
+    # T = generate_transition_mat(m)
+    T = 10;
     logging && println("Generating reward matrix")
-    R = POMDPModelTools.reward_vectors(mdp)
+    # R = POMDPModelTools.reward_vectors(mdp)
+    R = 10;
     tol = 1e-3         # convergence tolerance
-    loops = 6         # maximum number of 
-    logging && println("size of transition matrix", size(T[actions(m)[1]]))
+    loops = 1e6        # maximum number of 
+    # logging && println("Size of transition matrix", size(T[actions(m)[1]]))
     
     # perform value iteration 
-    logging && println("Performing value iteration...")
     _, _, Qmatrix = value_iteration_vectorized(m, T, R, tol, discount, loops)
+    logging && println("Value iteration done.")
 
     # the psuedoalpha vectors are the Qmatrix entries
     acts = ordered_actions(m)

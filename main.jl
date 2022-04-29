@@ -20,6 +20,14 @@ include("./wordle_pomdp.jl")
 include("./helper.jl")
 include("./qmdp.jl")
 
+function read_words_file(filename::String)::Vector{String}
+    s = open(filename) do file
+        read(file, String)
+    end
+    s = replace(s, '\"' => "")
+    return split(s, ", ")
+end
+
 function main(debug, small, set_size)
     # :param: logging: whether to print extra debugging statements 
     # :param: small: use a smaller word list for testing 
@@ -28,7 +36,8 @@ function main(debug, small, set_size)
     global logging = debug
 
     # set the word list 
-    full_set = deepcopy(Wordle.VALID_WORD_LIST)
+    full_set = read_words_file("./solutions.txt")
+    # full_set = deepcopy(Wordle.VALID_WORD_LIST)
     if small 
         small_set = sample(full_set, set_size; replace=false)
         global words = small_set
@@ -82,11 +91,13 @@ function main(debug, small, set_size)
     # Use HW6 updater
     up = HW6Updater(m)
     println("Creating a policy using QMDP")
-    policy = qmdp_solve(m)
+    t_policy = time()
+    policy = qmdp_solve(m);
+    println("Total time for policy generation = ", time() - t_policy, 's')
 
     # Run test trials
-    println("QMDP Rollout Simulator")
     trials = 1000
+    println("Running QMDP Rollout Simulator for ", trials," trials")
     counter_vec = zeros(Int32,trials,1)
     counter_mask = zeros(Bool,trials,1)
     for i in 1:trials
@@ -103,12 +114,16 @@ function main(debug, small, set_size)
             r_total += d*r
             d *= discount(m)
             b = update(up, b, a, o)
-            
+
+            # logging && @show s, a, sp
+            # logging && @show o
+
+            s = sp
             counter += 1
         end
         counter < 7 && (counter_mask[i] = true)
         counter_vec[i] = counter
-        if mod(i,50) == 0
+        if mod(i,10) == 0
             println("Trial ",i, " score ", counter)
         end
     end

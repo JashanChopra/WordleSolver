@@ -86,20 +86,21 @@ function wordle_transition(s, a)
     # transition function for Wordle, given the state and action 
     # words_at_turn_zero = wordle_states()[1:length(words)]
     # logging && println("TRANSITION: current state ",s, " action ", a)
-    if s[1] == a 
+    sp = deepcopy(s)
+    if sp[1] == a 
         # if we guess the correct word, set turn number to -1
         # logging && println("Correct word on turn ", s[2] + 1)
-        s[2] = -1
-        return Deterministic(s)
+        sp[2] = -1
+        return Deterministic(sp)
     elseif s[2] == 7
         # if we are on the 7th turn, set turn number to -1 bc 
         # logging && println("Failed game, we made it to turn 7")
-        s[2] = -1
-        return Deterministic(s)
+        sp[2] = -1
+        return Deterministic(sp)
     else 
         # if we haven't guessed the word, the word stays the same, increase turn num 
-        s[2] += 1
-        return Deterministic(s)
+        sp[2] += 1
+        return Deterministic(sp)
     end
 end
 
@@ -110,13 +111,16 @@ function wordle_observation_probs(a, sp)
         # if our guess is correct, then we are 100% certain of the observation
         # todo: the get_possible_words function should actually handle this case, so I don't think I need this extra if statement
         leftovers = get_possible_words(sp[1], a, words) # (true word, guess)
-        # logging && println("Observation: ", leftovers)
+        # logging && println("State", sp, "Action ", a)
+        # logging && println("Observation: ", [[sp[1]],sp[2]])
         return Deterministic([[sp[1]],sp[2]])
+    elseif sp[2] == -1
+        return Deterministic(["Placeholder",-1])
     else
         # otherwise, uniform prob of remaining possible words
         leftovers = get_possible_words(sp[1], a, words) # (true word, guess)
-        # logging && println("Observation: ", leftovers)
-        # return Uniform(leftovers)
+        # logging && println("State", sp, "Action ", a)
+        # logging && println("Observation: ", [leftovers,sp[2]])
         return Deterministic([leftovers,sp[2]])
     end
 end
@@ -132,6 +136,8 @@ function wordle_reward(s, a)
         # we failed the game 
         # logging && println("Reward = -25")
         return -25.0
+    elseif s[2] == -1
+        return 0
     else
         # the loss is equal to the turn we are on
         # logging && println("Reward = ", -1.0 * convert(Float64, s[2]))
