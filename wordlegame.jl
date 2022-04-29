@@ -1,13 +1,16 @@
 # redefine elements from the Wordle library 
 using Wordle
 
-# give the WorldeGame struct a field containing possible guesses 
+# give the WorldeGame struct new fields 
+# possible_word_list: Vector{String} : originally empty, filled with possible words and updated by a basic heuristic policy 
+# preguesses: Vector{String} : originally empty, filled with preallocated guesses
 mutable struct WordleGame
     target::String
     number::Union{Int, Nothing}
     guesses::Vector{Wordle.WordleGuess}
     hard::Bool
     possible_word_list::Vector{String}
+    preguesses::Vector{String}
 
     function WordleGame(target::String, number::Union{Int, Nothing} = nothing,
                guesses::Vector{Wordle.WordleGuess} = Wordle.WordleGuess[]; hard = false, 
